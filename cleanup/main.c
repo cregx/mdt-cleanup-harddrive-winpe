@@ -95,7 +95,7 @@ const TCHAR * g_pstrActionPath;						// Full path to the batch file.
 const TCHAR * g_pstrActionInstPath;					// Full path to the file with instructions for the batch file.
 action_type g_currentAction;						// Cleanup or terminate action should be performed?
 
-const LPCWSTR szAppVersion		= TEXT("App Version 1.00 21-05-2022 / MIT License Copyright (c) 2022 Christoph Regner\nVisit the project web site at https://www.cregx.de/docs/cleanup-mdt-winpe/");
+const LPCWSTR szAppVersion		= TEXT("App Version 1.0.1 / 05-23-2022 / MIT License Copyright (c) 2022 Christoph Regner\nVisit the project web site at https://www.cregx.de/docs/cleanup-mdt-winpe/");
 const LPCWSTR szCloseAppMsg		= TEXT("If you click OK, the operation will continue without cleaning the primary hard disk.");
 const LPCWSTR szCloseAppTitle	= TEXT("Continue without hard disk cleanup?");
 const LPCWSTR szRunActionText	= TEXT("Cleanup process");
