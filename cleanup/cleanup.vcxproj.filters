@@ -39,5 +39,8 @@
     <None Include="diskpart.txt">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="..\LICENSE.md">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

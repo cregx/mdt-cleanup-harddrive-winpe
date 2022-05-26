@@ -43,6 +43,7 @@
 
 #define _WIN32_WINNT 0x400
 #define _Win32_DCOM
+#define MAX_LOADSTRING 512
 
 #include <Windows.h>
 #include <CommCtrl.h>
@@ -53,8 +54,7 @@
 #include <ShellAPI.h>				// e.g. SHELLEXECUTEINFO.
 #include <io.h>						// e.g. _access_s (file exists).
 
-// COM objects.
-#include <Shobjidl.h>
+#include <Shobjidl.h>				// COM objects.
 #include <Objbase.h>
 
 #include "resource.h"
@@ -95,18 +95,26 @@ const TCHAR * g_pstrActionPath;						// Full path to the batch file.
 const TCHAR * g_pstrActionInstPath;					// Full path to the file with instructions for the batch file.
 action_type g_currentAction;						// Cleanup or terminate action should be performed?
 
-const LPCWSTR szAppVersion		= TEXT("App Version 1.0.1 / 05-23-2022 / MIT License Copyright (c) 2022 Christoph Regner\nVisit the project web site at https://www.cregx.de/docs/cleanup-mdt-winpe/");
-const LPCWSTR szCloseAppMsg		= TEXT("If you click OK, the operation will continue without cleaning the primary hard disk.");
-const LPCWSTR szCloseAppTitle	= TEXT("Continue without hard disk cleanup?");
-const LPCWSTR szRunActionText	= TEXT("Cleanup process");
-const LPCWSTR szQuestRunRecText	= TEXT("Warning! Do you want to completely clear the primary hard disk? This will result in the deletion of all data on it?");
+WCHAR szAppDialogTitle[MAX_LOADSTRING];
+WCHAR szAppActionRequest[MAX_LOADSTRING];
+WCHAR szAppActionExpl[MAX_LOADSTRING];
+WCHAR szAppVersion[MAX_LOADSTRING];
+WCHAR szRunActionText[MAX_LOADSTRING];
+WCHAR szActionWarning[MAX_LOADSTRING];
+WCHAR szActionSuccessful[MAX_LOADSTRING];
+WCHAR szActionFailed[MAX_LOADSTRING];
+WCHAR szActionCancelled[MAX_LOADSTRING];
+WCHAR szBtnActionCaption[MAX_LOADSTRING];
+WCHAR szBtnCancelCaption[MAX_LOADSTRING];
+WCHAR szAppLang[MAX_LOADSTRING];
+
+// Don't forget to increase the version number in the resource file (cleanup.rc).
+const LPCWSTR szAppVer			= TEXT("1.0.2 (%s) / 26. Mai 2022");
+
 const LPCWSTR szBatchFileName	= TEXT("action.bat");
 const LPCWSTR szBatchParams		= TEXT("diskpart.txt");
 const LPCWSTR szRestartExe		= TEXT("wpeutil.exe");
 const LPCWSTR szRestartExeParams= TEXT("reboot");
-const LPCWSTR szActionResult	= TEXT("The primary hard disk was successfully cleaned.\nThe system will now reboot.");
-const LPCWSTR szActionFailed	= TEXT("The operation failed.\n\nError code: %lu");
-const LPCWSTR szActionCancelled = TEXT("The operation was canceled.\n\nError code: %lu");
 
 const DWORD RUN_ACTION_SHELLEX_FAILED	= 0xFFFFFFFFFFFFFFFF;		// dec => -1 (Function internal error, use GetLastError())
 const DWORD RUN_ACTION_SUCCESSFUL		= 0x400;					// dec => 1024 (Successful processing of the batch file.)
@@ -120,6 +128,34 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
   HWND hDlg;
   MSG msg;
   BOOL ret;
+
+#ifdef NLS
+  LoadString(hInst, IDS_APP_LANG_NLS, szAppLang, MAX_LOADSTRING);
+  LoadString(hInst, IDS_BTN_ACTION_CAPTION_NLS, szBtnActionCaption, MAX_LOADSTRING);
+  LoadString(hInst, IDS_BTN_CANCEL_CAPTION_NLS, szBtnCancelCaption, MAX_LOADSTRING);
+  LoadString(hInst, IDS_APP_ACTION_EXPLANATION_NLS, szAppActionExpl, MAX_LOADSTRING);
+  LoadString(hInst, IDS_APP_ACTION_REQUEST_NLS, szAppActionRequest, MAX_LOADSTRING);
+  LoadString(hInst, IDS_TITLE_NLS, szAppDialogTitle, MAX_LOADSTRING);
+  LoadString(hInst, IDS_APPV, szAppVersion, MAX_LOADSTRING);
+  LoadString(hInst, IDS_RUN_ACTION_TITLE_NLS, szRunActionText, MAX_LOADSTRING);
+  LoadString(hInst, IDS_RUN_ACTION_WARNING_NLS, szActionWarning, MAX_LOADSTRING); 
+  LoadString(hInst, IDS_RUN_ACTION_SUCCESSFUL_NLS, szActionSuccessful, MAX_LOADSTRING);
+  LoadString(hInst, IDS_RUN_ACTION_FAILED_NLS, szActionFailed, MAX_LOADSTRING);
+  LoadString(hInst, IDS_RUN_ACTION_CANCELED_NLS, szActionCancelled, MAX_LOADSTRING);
+#else
+  LoadString(hInst, IDS_APP_LANG, szAppLang, MAX_LOADSTRING);
+  LoadString(hInst, IDS_BTN_ACTION_CAPTION, szBtnActionCaption, MAX_LOADSTRING);
+  LoadString(hInst, IDS_BTN_CANCEL_CAPTION, szBtnCancelCaption, MAX_LOADSTRING);
+  LoadString(hInst, IDS_APP_ACTION_EXPLANATION, szAppActionExpl, MAX_LOADSTRING);
+  LoadString(hInst, IDS_TITLE, szAppDialogTitle, MAX_LOADSTRING);
+  LoadString(hInst, IDS_APP_ACTION_REQUEST, szAppActionRequest, MAX_LOADSTRING);
+  LoadString(hInst, IDS_APPV, szAppVersion, MAX_LOADSTRING);
+  LoadString(hInst, IDS_RUN_ACTION_TITLE, szRunActionText, MAX_LOADSTRING);
+  LoadString(hInst, IDS_RUN_ACTION_WARNING, szActionWarning, MAX_LOADSTRING); 
+  LoadString(hInst, IDS_RUN_ACTION_SUCCESSFUL, szActionSuccessful, MAX_LOADSTRING);
+  LoadString(hInst, IDS_RUN_ACTION_FAILED, szActionFailed, MAX_LOADSTRING);
+  LoadString(hInst, IDS_RUN_ACTION_CANCELED, szActionCancelled, MAX_LOADSTRING);
+#endif
 
   InitCommonControls();
   hDlg = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_DIALOG1), 0, DialogProc, 0);
@@ -205,6 +241,9 @@ INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
  */
 void onInit(HWND hwndDlg, WPARAM wParam)
 {
+	TCHAR szBuffer[1024];
+	TCHAR szVersion[128];
+
 	g_currentAction = CLEANUP;
 
 	// Get the module path.
@@ -217,8 +256,16 @@ void onInit(HWND hwndDlg, WPARAM wParam)
 	g_pstrActionInstPath = GetActionPath((TCHAR *)g_pstrExePath, (TCHAR *)szBatchParams);
 	
 	// Init controls.
+	SetWindowText(hwndDlg, szAppDialogTitle);
+	SetDlgItemText(hwndDlg, IDC_STATIC_REQUEST, szAppActionRequest);
+	SetDlgItemText(hwndDlg, IDC_STATIC_EXPLANATION, szAppActionExpl);
+	SetDlgItemText(hwndDlg, IDC_BUTTON_CLEANUP, szBtnActionCaption);
+	SetDlgItemText(hwndDlg, IDCANCEL, szBtnCancelCaption);
+
 	// App version.
-	SetWindowText(GetDlgItem(hwndDlg, IDC_STATIC_APP_INFO), szAppVersion);
+	_stprintf_s(szVersion, 128, szAppVer, szAppLang);  
+	_stprintf_s(szBuffer, 1024, szAppVersion, szVersion);
+	SetWindowText(GetDlgItem(hwndDlg, IDC_STATIC_APP_INFO), szBuffer);
 }
 
 /**
@@ -241,14 +288,14 @@ void onAction(HWND hDlg, action_type action)
 	// Cleanup action.
 	if (action == CLEANUP)
 	{
-		if (MessageBox(hDlg, szQuestRunRecText, szRunActionText, MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2) == IDYES)
+		if (MessageBox(hDlg, szActionWarning, szRunActionText, MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2) == IDYES)
 		{
 			// Run action and wait until the task is finished.
 			rcRunAction = ActionEx(g_pstrActionPath, TEXT("%s"), g_pstrActionInstPath);
 
 			if (rcRunAction == RUN_ACTION_SUCCESSFUL)
 			{
-				MessageBox(hDlg, szActionResult, szRunActionText, MB_ICONINFORMATION | MB_OK);
+				MessageBox(hDlg, szActionSuccessful, szRunActionText, MB_ICONINFORMATION | MB_OK);
 				
 				// Restart the system now.
 				Action(szRestartExe, szRestartExeParams, SW_HIDE);

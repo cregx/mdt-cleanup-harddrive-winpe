@@ -1,8 +1,8 @@
 @echo off
 REM
 REM Common description:
-REM  This script is used to clean up the (primary) hard disk using Diskpart.
-REM  Version 1.0 (Revision 0)
+REM  This script is used to clean the (primary) hard disk with Diskpart.
+REM  Version 1.0 (Revision 1)
 REM  Author: Christoph Regner (Mai 2022)
 REM
 REM Parameter description:
@@ -29,7 +29,7 @@ REM SET /A errno^|=0x10
 REM END DEBUG Test
  
 echo Operation: diskpart /s %1
-echo Start clean up process.
+echo Starting the cleanup process.
 diskpart.exe /s %1 
 
 if %errorlevel% neq 0 (
