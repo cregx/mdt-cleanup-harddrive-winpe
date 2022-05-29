@@ -5,7 +5,7 @@ The WinPE UI application "cleanup" provides the ability to easily wipe the prima
 
 Cleanup is a Win32 application created in (Microsoft) C and Visual Studio 2010.
 
-## The origin of my problem.
+## The origin of my problem
 I noticed in an MDT project to deploy an offline based Windows 10 installation that it sometimes interrupted with an error.
 This happened somewhere in the task sequence after the step: "Format and Partition Disk (BIOS) / ... (UEF)", i.e. relatively early, at the beginning of the installation process. 
 
