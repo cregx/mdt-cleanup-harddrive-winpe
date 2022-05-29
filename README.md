@@ -1,11 +1,11 @@
 # Cleanup
  [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE.md) [![GitHub all releases](https://img.shields.io/github/downloads/cregx/mdt-cleanup-harddrive-winpe/total?color=green&label=download%20all%20releases)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/releases)
 
-The WinPE UI application "cleanup" provides the option of a simple wipe of the primary disk before a Microsoft Deployment Toolkit (MDT) based Lite Touch installation begins.
+The WinPE UI application "cleanup" provides the ability to easily wipe the primary hard disk before a Microsoft Deployment Toolkit (MDT) based Lite Touch installation begins, i.e. before the LTI Wizard starts
 
-Cleanup is a Win32 application created in Microsoft C and Visual Studio 2010.
+Cleanup is a Win32 application created in (Microsoft) C and Visual Studio 2010.
 
-## My problem origin
+## The origin of my problem.
 I noticed in an MDT project to deploy an offline based Windows 10 installation that it sometimes interrupted with an error.
 This happened somewhere in the task sequence after the step: "Format and Partition Disk (BIOS) / ... (UEF)", i.e. relatively early, at the beginning of the installation process. 
 
@@ -26,7 +26,7 @@ However, it quickly turns out that this was not so easy in the MDT because I nee
 
 I found out that you can run a simple Visual Basic script with this task before running the actual installation. That was the solution!
 
-However, since I wanted to make the script a little more pleasant (nicer), I had to come up with a GUI-based solution: cleanup.
+However, since I wanted to make the script a little more pleasant (nicer), I had to come up with a GUI-based solution: **cleanup**.
 <p align="center" width="100%">
 <img alt="Cleanup UI" src="https://user-images.githubusercontent.com/14788832/170817591-201cce66-7ee0-417f-8f83-7bde98e36e92.png" width="50%" height="50%" />
 </p>
