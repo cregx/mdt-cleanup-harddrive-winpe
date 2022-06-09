@@ -26,7 +26,7 @@ However, it quickly turns out that this was not so easy in the MDT because I nee
 
 I found out that you can run a simple Visual Basic script with this task before running the actual installation. That was the solution!
 
-However, since I wanted to make the script a little more pleasant (nicer), I had to come up with a GUI-based solution: **cleanup**.
+However, since I wanted to make the script a little more pleasant (nicer :blush:), I had to come up with a GUI-based solution: **cleanup**.
 <p align="center" width="100%">
 <img alt="Cleanup UI" src="https://user-images.githubusercontent.com/14788832/170817591-201cce66-7ee0-417f-8f83-7bde98e36e92.png" width="50%" height="50%" />
 </p>
@@ -81,7 +81,15 @@ The solution consists of the following three components:
 <p align="center" width="100%">
 <img alt="MDT DeploymentShare Properties WinPE" src="https://user-images.githubusercontent.com/14788832/170854434-abb896b6-2593-4192-912b-b2a8e3993811.png" width="50%" height="50%" />
 </p>
+
 5. Create a new medium and boot from it.
+
+6. The result in action: After integrating Cleanup into your own MDT solution, the result should look like the animation shown below. Have fun and success with it. :wink:
+
+<p align="center" width="100%">
+<img alt="MDT Cleanup Harddrive Animation" src="https://user-images.githubusercontent.com/14788832/172863867-bee55c1a-6be9-49ec-a8ce-16b7222bfcc5.gif" width="75%" height="75%" />
+</p>
+
 
 ## Code of Conduct
 
