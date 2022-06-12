@@ -92,17 +92,17 @@ The solution consists of the following three components:
 
 ## FAQ
 
-### How much time should I expect to spend trying out the solution in my environment?
+### :question: How much time should I expect to spend trying out the solution in my environment?
 
 It is very difficult to give a general answer. But if you can already create ISO images with your installation, then this should not take more than **5-10 minutes**.
 
-### How to get cleanup in my local language (National Language Support)?
+### :question: How to get cleanup in my local language (National Language Support)?
 
 You have to change the resource file cleanup.rc and recompile the project.
 You can find the corresponding resource entries for your language in the ```String Table```. These all contain the suffix ```_NLS``` in their identifier, e.g. ```IDS_RUN_ACTION_FAILED_NLS```. 
 Just revise all the strings you want and then create a new build. Finally, you can find your language version under ```x64/Release_NLS```.
 
-### I have included Cleanup in my LTI solution, but I would like to remove it now. How can I do that?
+### :question: I have included Cleanup in my LTI solution, but I would like to remove it now. How can I do that?
 
 You need to undo the following adjustments:
 
