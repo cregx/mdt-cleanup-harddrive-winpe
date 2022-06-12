@@ -90,6 +90,25 @@ The solution consists of the following three components:
 <img alt="MDT Cleanup Harddrive Animation" src="https://user-images.githubusercontent.com/14788832/172863867-bee55c1a-6be9-49ec-a8ce-16b7222bfcc5.gif" width="75%" height="75%" />
 </p>
 
+## FAQ
+
+### How much time should I expect to spend trying out the solution in my environment?
+
+It is very difficult to give a general answer. But if you can already create ISO images with your installation, then this should not take more than **5-10 minutes**.
+
+### How to get cleanup in my local language (National Language Support)?
+
+You have to change the resource file cleanup.rc and recompile the project.
+You can find the corresponding resource entries for your language in the ```String Table```. These all contain the suffix ```_NLS``` in their identifier, e.g. ```IDS_RUN_ACTION_FAILED_NLS```. 
+Just revise all the strings you want and then create a new build. Finally, you can find your language version under ```x64/Release_NLS```.
+
+### I have included Cleanup in my LTI solution, but I would like to remove it now. How can I do that?
+
+You need to undo the following adjustments:
+
+- the entry in ```C:\Program Files\Microsoft Deployment Toolkit\Templates\Unattend_PE_x64.xml```,
+- of the property in DeploymentShare (```Extra directory to add```). After that the directory with the release files (e.g. ```C:\DeploymentShare Extra\Cleanup```) can be deleted.
+- Finally, and most importantly, **delete** the ```content``` directory in the ```DeploymentMedia``` folder and **update** the ```Deployment Share``` (this will completely recreate this folder). If you omit this step, the files cleanup.exe, diskpart.txt and action.bat will remain in your WinPE (ISO file).
 
 ## Code of Conduct
 
