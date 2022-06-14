@@ -102,6 +102,8 @@ You have to change the resource file cleanup.rc and recompile the project.
 You can find the corresponding resource entries for your language in the ```String Table```. These all contain the suffix ```_NLS``` in their identifier, e.g. ```IDS_RUN_ACTION_FAILED_NLS```. 
 Just revise all the strings you want and then create a new build. Finally, you can find your language version under ```x64/Release_NLS```.
 
+If you are not able to create your own NLS version, please contact me and tell me your translations in the process. I will then create an appropriate version for you and make it available for download under Releases.
+
 ### :question: I have included Cleanup in my LTI solution, but I would like to remove it now. How can I do that?
 
 You need to undo the following adjustments:
