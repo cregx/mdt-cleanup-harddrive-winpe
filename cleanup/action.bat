@@ -30,6 +30,7 @@ REM END DEBUG Test
  
 echo Operation: diskpart /s %1
 echo Starting the cleanup process.
+echo Be patient, the process may take some time.
 diskpart.exe /s %1 
 
 if %errorlevel% neq 0 (
