@@ -52,7 +52,7 @@
 #include <Shlwapi.h>				// e.g. For example for shortening long paths. Needed: Shlwapi.lib static linked.
 #include <strsafe.h>				// e.g. Safe string copy.
 #include <ShellAPI.h>				// e.g. SHELLEXECUTEINFO.
-#include <io.h>						// e.g. _access_s (file exists).
+#include <io.h>					// e.g. _access_s (file exists).
 
 #include <Shobjidl.h>				// COM objects.
 #include <Objbase.h>
@@ -73,7 +73,7 @@
 #pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "propsys.lib")
 
-typedef enum { TERMINATE, CLEANUP } action_type;		// 0 for exit, 1 for cleanup.
+typedef enum { TERMINATE, CLEANUP } action_type;	// 0 for exit, 1 for cleanup.
 
 INT_PTR CALLBACK DialogProc(HWND, UINT, WPARAM, LPARAM);
 void onAction(HWND, action_type);
@@ -90,10 +90,10 @@ void ShowLogo(HWND);
 static HBITMAP hBitmapLogo;
 static HWND hwndLogo;
 
-const TCHAR * g_pstrExePath;						// Full path to the exe.
-const TCHAR * g_pstrActionPath;						// Full path to the batch file.
-const TCHAR * g_pstrActionInstPath;					// Full path to the file with instructions for the batch file.
-action_type g_currentAction;						// Cleanup or terminate action should be performed?
+const TCHAR * g_pstrExePath;				// Full path to the exe.
+const TCHAR * g_pstrActionPath;				// Full path to the batch file.
+const TCHAR * g_pstrActionInstPath;			// Full path to the file with instructions for the batch file.
+action_type g_currentAction;				// Cleanup or terminate action should be performed?
 
 WCHAR szAppDialogTitle[MAX_LOADSTRING];
 WCHAR szAppActionRequest[MAX_LOADSTRING];
@@ -109,18 +109,18 @@ WCHAR szBtnCancelCaption[MAX_LOADSTRING];
 WCHAR szAppLang[MAX_LOADSTRING];
 
 // Don't forget to increase the version number in the resource file (cleanup.rc).
-const LPCWSTR szAppVer			= TEXT("1.0.2 (%s) / 26. Mai 2022");
+const LPCWSTR szAppVer		= TEXT("1.0.2 (%s) / 26. Mai 2022");
 
 const LPCWSTR szBatchFileName	= TEXT("action.bat");
-const LPCWSTR szBatchParams		= TEXT("diskpart.txt");
-const LPCWSTR szRestartExe		= TEXT("wpeutil.exe");
+const LPCWSTR szBatchParams	= TEXT("diskpart.txt");
+const LPCWSTR szRestartExe	= TEXT("wpeutil.exe");
 const LPCWSTR szRestartExeParams= TEXT("reboot");
 
 const DWORD RUN_ACTION_SHELLEX_FAILED	= 0xFFFFFFFFFFFFFFFF;		// dec => -1 (Function internal error, use GetLastError())
-const DWORD RUN_ACTION_SUCCESSFUL		= 0x400;					// dec => 1024 (Successful processing of the batch file.)
-const DWORD RUN_ACTION_CANCELLED_BY_USER= 0xC000013A;				// dec => 3221225786
-																	// (Cancellation of the batch job by the user,
-																	// e.g. because the user has clicked the X button.)
+const DWORD RUN_ACTION_SUCCESSFUL	= 0x400;			// dec => 1024 (Successful processing of the batch file.)
+const DWORD RUN_ACTION_CANCELLED_BY_USER= 0xC000013A;			// dec => 3221225786
+									// (Cancellation of the batch job by the user,
+									// e.g. because the user has clicked the X button.)
 
 // Main function.
 int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdShow)
@@ -278,7 +278,6 @@ void onClose(HWND hwnd)
 
 /**
  * Event fired when the action button is clicked.
- *
  */
 void onAction(HWND hDlg, action_type action)
 {
@@ -318,7 +317,6 @@ void onAction(HWND hDlg, action_type action)
 
 /**
  * An event that occurs when the user clicks on the CMD button.
- *
  */
 void onClick_ButtonCmd()
 {
@@ -326,9 +324,8 @@ void onClick_ButtonCmd()
 	ShellExecute(NULL, TEXT("open"), TEXT("cmd.exe"), NULL, NULL, SW_SHOWNORMAL);
 }
 
-/*
+/**
  * Returns the absolute path to this module (exe), e.g. c:\programfiles\tool\myapp.exe
- *
  */
 const TCHAR * GetOwnPath()
 {
@@ -346,9 +343,8 @@ const TCHAR * GetOwnPath()
 	return ptrOwnPath;
 }
 
-/*
+/**
  * Returns an absolute path to the action (batch) file. Based on the data from GetOwnPath().
- *
  */
 const TCHAR * GetActionPath(TCHAR * szModulePath, TCHAR * szNewActionFileName)
 {
@@ -381,9 +377,8 @@ const TCHAR * GetActionPath(TCHAR * szModulePath, TCHAR * szNewActionFileName)
 	return ptrBatchPath;
 }
 
-/*
+/**
  * This function executes the actual job and waits until it is finished.
- *
  */
 void Action(const TCHAR * szActionFile, const TCHAR * szParameters, int nShow)
 {
@@ -408,7 +403,7 @@ void Action(const TCHAR * szActionFile, const TCHAR * szParameters, int nShow)
 	CloseHandle(sei.hProcess);
 }
 
-/*
+/**
  * This function executes the actual action job and waits until it is finished.
  * This function corresponds to the Action() function with the 
  * difference that it takes dynamic parameter lists as last parameter
@@ -428,7 +423,7 @@ DWORD ActionEx(const TCHAR * szActionFile, TCHAR * szFormat, ...)
 
 	// Dynamic parameter list...
 	// See for more information also: https://docs.microsoft.com/de-de/cpp/c-runtime-library/reference/vsnprintf-s-vsnprintf-s-vsnprintf-s-l-vsnwprintf-s-vsnwprintf-s-l?view=msvc-160
-	// See also: See also: Book by Charles Petzold, 5th edition Windows Programming, page 42 (SCRNSIZE.C). 
+	// See also: Book by Charles Petzold, 5th edition Windows Programming, page 42 (SCRNSIZE.C). 
 	TCHAR szParameters[2048];
 	va_list pArgList;
 
@@ -465,7 +460,7 @@ DWORD ActionEx(const TCHAR * szActionFile, TCHAR * szFormat, ...)
 	return SHELL_EXECUTE_EX_FAILED;
 }
 
-/*
+/**
  * Checks if a file exists and returns TRUE in this case else FALSE.
  * Source: https://docs.microsoft.com/de-de/cpp/c-runtime-library/reference/access-s-waccess-s?view=msvc-160
  */
@@ -481,7 +476,7 @@ BOOL FileExists(const wchar_t * szFile)
 	return FALSE;
 }
 
-/*
+/**
  * Creates a window to display a logo loaded from the resource file.
  */
 void ShowLogo(HWND hwndDlg)
