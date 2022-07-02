@@ -37,7 +37,7 @@
  * of a Lite Touch installation (WinPE / MDT). Build with Visual Studio 2010.
  *
  * MIT License
- * Copyright (c) Christoph Regner Mai 2022
+ * Copyright (c) Christoph Regner July 2022
  **/
 #define WIN32_LEAN_AND_MEAN
 
@@ -104,19 +104,25 @@ WCHAR szActionWarning[MAX_LOADSTRING];
 WCHAR szActionSuccessful[MAX_LOADSTRING];
 WCHAR szActionFailed[MAX_LOADSTRING];
 WCHAR szActionCancelled[MAX_LOADSTRING];
+WCHAR szActionFileNotFound[MAX_LOADSTRING];
 WCHAR szBtnActionCaption[MAX_LOADSTRING];
 WCHAR szBtnCancelCaption[MAX_LOADSTRING];
 WCHAR szAppLang[MAX_LOADSTRING];
 
 // Don't forget to increase the version number in the resource file (cleanup.rc).
-const LPCWSTR szAppVer		= TEXT("1.0.2 (%s) / 26. Mai 2022");
+#ifdef NLS
+const LPCWSTR szAppVer		= TEXT("1.0.3 (%s) / 02. Juli 2022");
+#else
+const LPCWSTR szAppVer		= TEXT("1.0.3 (%s) / 02. July 2022");
+#endif
 
 const LPCWSTR szBatchFileName	= TEXT("action.bat");
 const LPCWSTR szBatchParams	= TEXT("diskpart.txt");
 const LPCWSTR szRestartExe	= TEXT("wpeutil.exe");
 const LPCWSTR szRestartExeParams= TEXT("reboot");
 
-const DWORD RUN_ACTION_SHELLEX_FAILED	= 0xFFFFFFFFFFFFFFFF;		// dec => -1 (Function internal error, use GetLastError())
+const DWORD RUN_ACTION_SHELLEX_FAILED	= 0xFFFFFFFFFFFFFFFF;		// dec => -1 (Function internal error, use GetLastError().)
+const DWORD RUN_ACTION_SHELLEX_FILE_NOT_FOUND = 0xFFFFFFFFFFFFFFFE;	// dec => -2 (Action file not found.)
 const DWORD RUN_ACTION_SUCCESSFUL	= 0x400;			// dec => 1024 (Successful processing of the batch file.)
 const DWORD RUN_ACTION_CANCELLED_BY_USER= 0xC000013A;			// dec => 3221225786
 									// (Cancellation of the batch job by the user,
@@ -142,6 +148,7 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
   LoadString(hInst, IDS_RUN_ACTION_SUCCESSFUL_NLS, szActionSuccessful, MAX_LOADSTRING);
   LoadString(hInst, IDS_RUN_ACTION_FAILED_NLS, szActionFailed, MAX_LOADSTRING);
   LoadString(hInst, IDS_RUN_ACTION_CANCELED_NLS, szActionCancelled, MAX_LOADSTRING);
+  LoadString(hInst, IDS_RUN_ACTION_FILE_NOT_FOUND_NLS, szActionFileNotFound, MAX_LOADSTRING);
 #else
   LoadString(hInst, IDS_APP_LANG, szAppLang, MAX_LOADSTRING);
   LoadString(hInst, IDS_BTN_ACTION_CAPTION, szBtnActionCaption, MAX_LOADSTRING);
@@ -155,6 +162,7 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
   LoadString(hInst, IDS_RUN_ACTION_SUCCESSFUL, szActionSuccessful, MAX_LOADSTRING);
   LoadString(hInst, IDS_RUN_ACTION_FAILED, szActionFailed, MAX_LOADSTRING);
   LoadString(hInst, IDS_RUN_ACTION_CANCELED, szActionCancelled, MAX_LOADSTRING);
+  LoadString(hInst, IDS_RUN_ACTION_FILE_NOT_FOUND, szActionFileNotFound, MAX_LOADSTRING);
 #endif
 
   InitCommonControls();
@@ -281,8 +289,11 @@ void onClose(HWND hwnd)
  */
 void onAction(HWND hDlg, action_type action)
 {
-	TCHAR szBuffer[1024];
+	#define MAX_BUFFER_SIZE 1024 
+	TCHAR szBuffer[MAX_BUFFER_SIZE];
 	DWORD rcRunAction = 0;
+
+	memset(szBuffer, 0, sizeof(szBuffer));
 
 	// Cleanup action.
 	if (action == CLEANUP)
@@ -298,19 +309,24 @@ void onAction(HWND hDlg, action_type action)
 				
 				// Restart the system now.
 				Action(szRestartExe, szRestartExeParams, SW_HIDE);
+				return;
 			}
 			else if (rcRunAction == RUN_ACTION_CANCELLED_BY_USER)
 			{
 				// Action cancelled by the user.
-				_stprintf_s(szBuffer, 1024, szActionCancelled, rcRunAction);
-				MessageBox(hDlg, szBuffer, szRunActionText, MB_ICONERROR | MB_OK);
+				_stprintf_s(szBuffer, MAX_BUFFER_SIZE, szActionCancelled, rcRunAction);
+			}
+			else if (rcRunAction == RUN_ACTION_SHELLEX_FILE_NOT_FOUND)
+			{
+				// Action file not found.
+				_stprintf_s(szBuffer, MAX_BUFFER_SIZE, szActionFileNotFound, g_pstrActionPath);
 			}
 			else 
 			{
 				// ActionEx() failed.
-				_stprintf_s(szBuffer, 1024, szActionFailed, rcRunAction);
-				MessageBox(hDlg, szBuffer, szRunActionText, MB_ICONERROR | MB_OK);
+				_stprintf_s(szBuffer, MAX_BUFFER_SIZE, szActionFailed, rcRunAction);
 			}
+			MessageBox(hDlg, szBuffer, szRunActionText, MB_ICONERROR | MB_OK);
 		}
 	}
 }
@@ -357,7 +373,6 @@ const TCHAR * GetActionPath(TCHAR * szModulePath, TCHAR * szNewActionFileName)
 	// Go through the entire module path string until it ends.
 	while (*pszModulePath != '\0')
 	{
-
 		*pTmp = *pszModulePath;
 		// Check if char is a backslash (remember it).
 		if (*pTmp == '\\')
@@ -420,17 +435,24 @@ DWORD ActionEx(const TCHAR * szActionFile, TCHAR * szFormat, ...)
 	SHELLEXECUTEINFO sei = {0};
 	DWORD exitCode = 0;
 	const int SHELL_EXECUTE_EX_FAILED = RUN_ACTION_SHELLEX_FAILED;
-
+	const int SHELL_EXECUTE_EX_FILE_NOT_FOUND = RUN_ACTION_SHELLEX_FILE_NOT_FOUND;
+		
 	// Dynamic parameter list...
 	// See for more information also: https://docs.microsoft.com/de-de/cpp/c-runtime-library/reference/vsnprintf-s-vsnprintf-s-vsnprintf-s-l-vsnwprintf-s-vsnwprintf-s-l?view=msvc-160
 	// See also: Book by Charles Petzold, 5th edition Windows Programming, page 42 (SCRNSIZE.C). 
 	TCHAR szParameters[2048];
 	va_list pArgList;
 
+	// Check if the action file exists.
+	if (FileExists(szActionFile) == FALSE)
+	{
+		return SHELL_EXECUTE_EX_FILE_NOT_FOUND;
+	}
+
 	va_start (pArgList, szFormat);
 	_vsntprintf_s(szParameters, sizeof(szParameters) / sizeof(TCHAR), _TRUNCATE, szFormat, pArgList); 
 	va_end (pArgList);
-	
+			
 	ZeroMemory(&sei, sizeof(sei));
 
 	sei.cbSize = sizeof(SHELLEXECUTEINFO);
