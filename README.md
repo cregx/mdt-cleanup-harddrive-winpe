@@ -1,6 +1,6 @@
 # Cleanup
- [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE.md) [![GitHub all releases](https://img.shields.io/github/downloads/cregx/mdt-cleanup-harddrive-winpe/total?color=green&label=download%20all%20releases)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/releases)
-
+ [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE.md) [![Visual Studio](https://badgen.net/badge/icon/visualstudio?icon=visualstudio&label)](https://visualstudio.microsoft.com) [![GitHub all releases](https://img.shields.io/github/downloads/cregx/mdt-cleanup-harddrive-winpe/total?color=green&label=download%20all%20releases)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/releases)
+ 
 The WinPE UI application "cleanup" provides the ability to easily wipe the primary hard disk before a Microsoft Deployment Toolkit (MDT) based Lite Touch installation begins, i.e. before the LTI Wizard starts.
 
 Cleanup is a Win32 application created in (Microsoft) C and Visual Studio 2010. Of course, you can also compile the project using a newer version of Visual Studio, such as 2019, or you can use an already compiled release version.
@@ -119,3 +119,5 @@ Please refer to the [Code of Conduct](https://github.com/cregx/mdt-cleanup-hardd
 ## Disclaimer
 
 This program code is provided "as is", without warranty or guarantee as to its usability or effects on systems. It may be used, distributed and modified in any manner, provided that the parties agree and acknowledge that the author(s) assume(s) no responsibility or liability for the results obtained by the use of this code.
+
+[![ForTheBadge built-with-love](http://ForTheBadge.com/images/badges/built-with-love.svg)](https://www.cregx.de)
