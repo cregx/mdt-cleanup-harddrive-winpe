@@ -17,6 +17,10 @@ The solution to the problem was also relatively simple: I had to do nothing othe
 diskpart.exe
 sel dis 0
 clean
+create partition primary
+active
+format fs=ntfs quick
+assign
 exit
 ```
 
@@ -28,7 +32,7 @@ I found out that you can run a simple Visual Basic script with this task before 
 
 However, since I wanted to make the script a little more pleasant (nicer :blush:), I had to come up with a GUI-based solution: **cleanup**.
 <p align="center" width="100%">
-<img alt="Cleanup UI" src="https://user-images.githubusercontent.com/14788832/170817591-201cce66-7ee0-417f-8f83-7bde98e36e92.png" width="50%" height="50%" />
+<img alt="Cleanup UI" src="https://user-images.githubusercontent.com/14788832/192137636-c4bb472c-d7f1-4b4a-954a-c36dcb0c4919.png" width="50%" height="50%" />
 </p>
 
 #### Components of the solution
