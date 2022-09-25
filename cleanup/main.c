@@ -37,13 +37,14 @@
  * of a Lite Touch installation (WinPE / MDT). Build with Visual Studio 2010.
  *
  * MIT License
- * Copyright (c) Christoph Regner July 2022
+ * Copyright (c) Christoph Regner September 2022
  **/
 #define WIN32_LEAN_AND_MEAN
 
 #define _WIN32_WINNT 0x400
 #define _Win32_DCOM
 #define MAX_LOADSTRING 512
+#define MAX_BUFFER_SIZE 1024
 
 #include <Windows.h>
 #include <CommCtrl.h>
@@ -86,6 +87,7 @@ void Action(const TCHAR *, const TCHAR *, int);
 DWORD ActionEx(const TCHAR *, TCHAR *, ...);
 BOOL FileExists(const wchar_t *);
 void ShowLogo(HWND);
+const TCHAR * GetLogicalDriveList(DWORD *);
 
 static HBITMAP hBitmapLogo;
 static HWND hwndLogo;
@@ -108,12 +110,14 @@ WCHAR szActionFileNotFound[MAX_LOADSTRING];
 WCHAR szBtnActionCaption[MAX_LOADSTRING];
 WCHAR szBtnCancelCaption[MAX_LOADSTRING];
 WCHAR szAppLang[MAX_LOADSTRING];
+WCHAR szLogicalDrivesList[MAX_LOADSTRING];
+WCHAR szLogicalDrivesListIsEmpty[MAX_LOADSTRING];
 
 // Don't forget to increase the version number in the resource file (cleanup.rc).
 #ifdef NLS
-const LPCWSTR szAppVer		= TEXT("1.0.3 (%s) / 02. Juli 2022");
+const LPCWSTR szAppVer		= TEXT("1.0.4 (%s) / 18. September 2022");
 #else
-const LPCWSTR szAppVer		= TEXT("1.0.3 (%s) / 02. July 2022");
+const LPCWSTR szAppVer		= TEXT("1.0.4 (%s) / 18. September 2022");
 #endif
 
 const LPCWSTR szBatchFileName	= TEXT("action.bat");
@@ -149,6 +153,8 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
   LoadString(hInst, IDS_RUN_ACTION_FAILED_NLS, szActionFailed, MAX_LOADSTRING);
   LoadString(hInst, IDS_RUN_ACTION_CANCELED_NLS, szActionCancelled, MAX_LOADSTRING);
   LoadString(hInst, IDS_RUN_ACTION_FILE_NOT_FOUND_NLS, szActionFileNotFound, MAX_LOADSTRING);
+  LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_NLS, szLogicalDrivesList, MAX_LOADSTRING);
+  LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_IS_EMPTY_NLS, szLogicalDrivesListIsEmpty, MAX_LOADSTRING);
 #else
   LoadString(hInst, IDS_APP_LANG, szAppLang, MAX_LOADSTRING);
   LoadString(hInst, IDS_BTN_ACTION_CAPTION, szBtnActionCaption, MAX_LOADSTRING);
@@ -163,6 +169,8 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
   LoadString(hInst, IDS_RUN_ACTION_FAILED, szActionFailed, MAX_LOADSTRING);
   LoadString(hInst, IDS_RUN_ACTION_CANCELED, szActionCancelled, MAX_LOADSTRING);
   LoadString(hInst, IDS_RUN_ACTION_FILE_NOT_FOUND, szActionFileNotFound, MAX_LOADSTRING);
+  LoadString(hInst, IDS_LOGICAL_DRIVES_LIST, szLogicalDrivesList, MAX_LOADSTRING);
+  LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_IS_EMPTY, szLogicalDrivesListIsEmpty, MAX_LOADSTRING);
 #endif
 
   InitCommonControls();
@@ -249,10 +257,28 @@ INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
  */
 void onInit(HWND hwndDlg, WPARAM wParam)
 {
-	TCHAR szBuffer[1024];
+	TCHAR szBuffer[MAX_BUFFER_SIZE];
 	TCHAR szVersion[128];
+	const TCHAR * szLogicalDrives;
+	DWORD countLogicalDrives = 0;
 
 	g_currentAction = CLEANUP;
+
+	// Gets the list of all logical drives in the system. 
+	szLogicalDrives = GetLogicalDriveList(&countLogicalDrives);
+
+	if (countLogicalDrives > 0)
+	{
+		_stprintf_s(szBuffer, MAX_BUFFER_SIZE, szLogicalDrivesList, szLogicalDrives);
+	}
+	else
+	{
+		// No logical drives found (should never occur).
+		EnableWindow(GetDlgItem(hwndDlg, IDC_BUTTON_CLEANUP), FALSE);
+		_stprintf_s(szBuffer, MAX_BUFFER_SIZE, szLogicalDrivesList, szLogicalDrivesListIsEmpty);
+		UpdateWindow(hwndDlg);
+	}
+	SetDlgItemText(hwndDlg, IDC_STATIC_LOGICAL_DRIVES, szBuffer);
 
 	// Get the module path.
 	g_pstrExePath = GetOwnPath();
@@ -272,8 +298,15 @@ void onInit(HWND hwndDlg, WPARAM wParam)
 
 	// App version.
 	_stprintf_s(szVersion, 128, szAppVer, szAppLang);  
-	_stprintf_s(szBuffer, 1024, szAppVersion, szVersion);
+	_stprintf_s(szBuffer, MAX_BUFFER_SIZE, szAppVersion, szVersion);
 	SetWindowText(GetDlgItem(hwndDlg, IDC_STATIC_APP_INFO), szBuffer);
+
+	// Release allocated memory. 
+	if (szLogicalDrives != NULL)
+	{
+		free((void *) szLogicalDrives);
+		szLogicalDrives = NULL;
+	}
 }
 
 /**
@@ -288,8 +321,7 @@ void onClose(HWND hwnd)
  * Event fired when the action button is clicked.
  */
 void onAction(HWND hDlg, action_type action)
-{
-	#define MAX_BUFFER_SIZE 1024 
+{ 
 	TCHAR szBuffer[MAX_BUFFER_SIZE];
 	DWORD rcRunAction = 0;
 
@@ -523,4 +555,66 @@ void ShowLogo(HWND hwndDlg)
 	hBitmapLogo = (HBITMAP)LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_BITMAP2), IMAGE_BITMAP, imgWidth, imgHeight, LR_SHARED);
 	hwndLogo = CreateWindow(L"Static", NULL, WS_VISIBLE | WS_CHILD | SS_BITMAP, xPos, yPos, imgWidth, imgHeight, hwndDlg, NULL, NULL, NULL);  
 	SendMessage(hwndLogo, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM) hBitmapLogo);
+}
+
+/**
+ * Determines the logical drives available in the system and returns them in the form of a compound string.
+ * dwDrivesCount: [out] Pointer for returning the number of drives found.
+ */
+const TCHAR * GetLogicalDriveList(DWORD * dwDrivesCount)
+{
+	DWORD drives, i = 0;
+
+	// Allocate memory for the compound string with all logical drives found.
+	// Later, the filled memory will look like this: "C:\ D:\"
+	// Don't forget to free the memory!
+	TCHAR * ptrDrives = (TCHAR *) calloc(1, sizeof(TCHAR));
+	
+	// Character array for the pattern of a detected logical drive. This looks like this: "C:\ "
+	// The length is 4 characters + 1 character for string termination ('\0').
+	TCHAR drivePattern[5];
+
+	// Determine the size of the drive pattern. This is required below for the memory reallocation.
+	// The value corresponds to the array size of drivePattern, i.e. the value of 5.
+	const size_t sizePattern = sizeof(drivePattern) / sizeof(TCHAR);
+
+	// newSize contains the size for the reallocation of the required memory.
+	size_t newSize = 0;
+	
+	// Detect all logical drives.
+	drives = GetLogicalDrives();
+
+	// Go through all the drive letters and find which drives are available.
+	for(i = 0; i < 26; i++)
+	{
+		// Explanation by example:
+		// GetLogicalDrives returns 0x0000000c = 12 (decimal) 
+		//                           Drive letter.: .. H G F E D C B A
+		//      A bit is set for a drive (example): .. 0 0 0 0 1 1 0 0
+		//    Decimal value for the respective bit:         .. 8 4 2 1
+		// 1 << 0 = 2 ^ 0 = 1
+		// 1 << 1 = 2 ^ 1 = 2
+		// 1 << 2 = 2 ^ 2 = 4
+		// 1 << 3 = 2 ^ 3 = 8
+		if( (drives & ( 1 << i )) != 0)
+		{
+			// Determine the required memory size for reallocation.
+			newSize += (sizePattern) * sizeof(TCHAR);
+
+			// Reallocate memory.
+			ptrDrives = (TCHAR *) realloc(ptrDrives, newSize);
+			
+			// Compose the pattern for a logical drive.
+			_stprintf_s(drivePattern, sizeof(drivePattern)/sizeof(TCHAR), TEXT("%c:\\ "), TEXT('A') + i);
+			
+			// Merge all drives found into one string.
+			_tcsncat(ptrDrives, drivePattern, newSize); 
+		}
+	}
+
+	// Return the number of logical drives found as a pointer.
+	*dwDrivesCount = i;
+
+	// Return a concatenated string of found drives.
+	return ptrDrives;
 }

@@ -1,3 +1,7 @@
 sel dis 0
 clean
+create partition primary
+active
+format fs=ntfs quick
+assign
 exit

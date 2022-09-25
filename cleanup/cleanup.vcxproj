@@ -135,8 +135,9 @@
       <AdditionalDependencies>Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(SolutionDir)\cleanup\action.bat" "$(TargetDir)\action.bat"
-copy "$(SolutionDir)\cleanup\diskpart.txt" "$(TargetDir)\diskpart.txt"</Command>
+      <Command>copy "$(SolutionDir)cleanup\action.bat" "$(TargetDir)action.bat"
+copy "$(SolutionDir)cleanup\diskpart.txt" "$(TargetDir)diskpart.txt"
+</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
