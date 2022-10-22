@@ -129,10 +129,10 @@ const LPCWSTR szBatchParams	= TEXT("diskpart.txt");
 const LPCWSTR szRestartExe	= TEXT("wpeutil.exe");
 const LPCWSTR szRestartExeParams= TEXT("reboot");
 const LPCWSTR szDiskLetter = TEXT("C:\\");				// Drive letter of the primary disc, usually C:\.
-const LPCWSTR szDiskLabel = TEXT("cleaned");			// Temporary label of the primary disc (volume) after 'Cleanup' has cleaned the disk.
-														// See also in the diskpart.txt.
-INT g_iCounter = 30;									// Countdawn timer counter that uses the time (seconds) to automatically exit 'Cleanup'.
-BOOL g_bTimerIsCreated;									// Signals whether a timer has been created.
+const LPCWSTR szDiskLabel = TEXT("cleaned");				// Temporary label of the primary disc (volume) after 'Cleanup' has cleaned the disk.
+									// See also in the diskpart.txt.
+INT g_iCounter = 30;							// Countdawn timer counter that uses the time (seconds) to automatically exit 'Cleanup'.
+BOOL g_bTimerIsCreated;							// Signals whether a timer has been created.
 
 const DWORD RUN_ACTION_SHELLEX_FAILED	= 0xFFFFFFFFFFFFFFFF;		// dec => -1 (Function internal error, use GetLastError().)
 const DWORD RUN_ACTION_SHELLEX_FILE_NOT_FOUND = 0xFFFFFFFFFFFFFFFE;	// dec => -2 (Action file not found.)
