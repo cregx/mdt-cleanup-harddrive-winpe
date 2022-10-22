@@ -37,7 +37,7 @@
  * of a Lite Touch installation (WinPE / MDT). Build with Visual Studio 2010.
  *
  * MIT License
- * Copyright (c) Christoph Regner September 2022
+ * Copyright (c) Christoph Regner October 2022
  **/
 #define WIN32_LEAN_AND_MEAN
 
@@ -45,6 +45,7 @@
 #define _Win32_DCOM
 #define MAX_LOADSTRING 512
 #define MAX_BUFFER_SIZE 1024
+#define ID_TIMER1 1
 
 #include <Windows.h>
 #include <CommCtrl.h>
@@ -88,6 +89,7 @@ DWORD ActionEx(const TCHAR *, TCHAR *, ...);
 BOOL FileExists(const wchar_t *);
 void ShowLogo(HWND);
 const TCHAR * GetLogicalDriveList(DWORD *);
+BOOL IsDiskCleaned(const TCHAR *, const TCHAR *);
 
 static HBITMAP hBitmapLogo;
 static HWND hwndLogo;
@@ -109,21 +111,28 @@ WCHAR szActionCancelled[MAX_LOADSTRING];
 WCHAR szActionFileNotFound[MAX_LOADSTRING];
 WCHAR szBtnActionCaption[MAX_LOADSTRING];
 WCHAR szBtnCancelCaption[MAX_LOADSTRING];
+WCHAR szBtnCancelCaptionWithTimer[MAX_LOADSTRING];
 WCHAR szAppLang[MAX_LOADSTRING];
 WCHAR szLogicalDrivesList[MAX_LOADSTRING];
 WCHAR szLogicalDrivesListIsEmpty[MAX_LOADSTRING];
+WCHAR szNoteDiskAlreadyCleaned[MAX_LOADSTRING];
 
 // Don't forget to increase the version number in the resource file (cleanup.rc).
 #ifdef NLS
-const LPCWSTR szAppVer		= TEXT("1.0.4 (%s) / 18. September 2022");
+const LPCWSTR szAppVer		= TEXT("1.0.5 (%s) / 22. October 2022");
 #else
-const LPCWSTR szAppVer		= TEXT("1.0.4 (%s) / 18. September 2022");
+const LPCWSTR szAppVer		= TEXT("1.0.5 (%s) / 22. October 2022");
 #endif
 
 const LPCWSTR szBatchFileName	= TEXT("action.bat");
 const LPCWSTR szBatchParams	= TEXT("diskpart.txt");
 const LPCWSTR szRestartExe	= TEXT("wpeutil.exe");
 const LPCWSTR szRestartExeParams= TEXT("reboot");
+const LPCWSTR szDiskLetter = TEXT("C:\\");				// Drive letter of the primary disc, usually C:\.
+const LPCWSTR szDiskLabel = TEXT("cleaned");			// Temporary label of the primary disc (volume) after 'Cleanup' has cleaned the disk.
+														// See also in the diskpart.txt.
+INT g_iCounter = 30;									// Countdawn timer counter that uses the time (seconds) to automatically exit 'Cleanup'.
+BOOL g_bTimerIsCreated;									// Signals whether a timer has been created.
 
 const DWORD RUN_ACTION_SHELLEX_FAILED	= 0xFFFFFFFFFFFFFFFF;		// dec => -1 (Function internal error, use GetLastError().)
 const DWORD RUN_ACTION_SHELLEX_FILE_NOT_FOUND = 0xFFFFFFFFFFFFFFFE;	// dec => -2 (Action file not found.)
@@ -155,6 +164,8 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
   LoadString(hInst, IDS_RUN_ACTION_FILE_NOT_FOUND_NLS, szActionFileNotFound, MAX_LOADSTRING);
   LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_NLS, szLogicalDrivesList, MAX_LOADSTRING);
   LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_IS_EMPTY_NLS, szLogicalDrivesListIsEmpty, MAX_LOADSTRING);
+  LoadString(hInst, IDS_BTN_CANCEL_CAPTION_WITH_TIMER_NLS, szBtnCancelCaptionWithTimer, MAX_LOADSTRING);
+  LoadString(hInst, IDS_APP_NOTE_DISK_ALREADY_CLEANED_NLS, szNoteDiskAlreadyCleaned, MAX_LOADSTRING);
 #else
   LoadString(hInst, IDS_APP_LANG, szAppLang, MAX_LOADSTRING);
   LoadString(hInst, IDS_BTN_ACTION_CAPTION, szBtnActionCaption, MAX_LOADSTRING);
@@ -171,11 +182,13 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
   LoadString(hInst, IDS_RUN_ACTION_FILE_NOT_FOUND, szActionFileNotFound, MAX_LOADSTRING);
   LoadString(hInst, IDS_LOGICAL_DRIVES_LIST, szLogicalDrivesList, MAX_LOADSTRING);
   LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_IS_EMPTY, szLogicalDrivesListIsEmpty, MAX_LOADSTRING);
+  LoadString(hInst, IDS_BTN_CANCEL_CAPTION_WITH_TIMER, szBtnCancelCaptionWithTimer, MAX_LOADSTRING);
+  LoadString(hInst, IDS_APP_NOTE_DISK_ALREADY_CLEANED, szNoteDiskAlreadyCleaned, MAX_LOADSTRING);
 #endif
 
   InitCommonControls();
   hDlg = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_DIALOG1), 0, DialogProc, 0);
-  ShowWindow(hDlg, nCmdShow);
+  ShowWindow(hDlg, nCmdShow);  // ShowWindows() need usually UpdateWindow() if you need to force the WM_PAINT.
 
   while((ret = GetMessage(&msg, 0, 0, 0)) != 0) {
     if(ret == -1)
@@ -191,18 +204,41 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
 }
 
 /**
- * Dialog box message procedure.
+ * Dialog box notifications procedure.
  */
 INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	TCHAR szBuffer[MAX_LOADSTRING];
+	static HBRUSH hBrushStatic;
+	static COLORREF colorRef[1] = { RGB(255, 0, 0) };
+	static RECT rectIDCANCEL;
+		
 	switch(uMsg)
 	{
 		case WM_INITDIALOG:
 			// Create a logo image.
 			ShowLogo(hwndDlg);
-
 			onInit(hwndDlg, wParam);
-			return TRUE;
+			// Get information to redraw the IDCANCEL button when using the timer.  
+			GetClientRect(GetDlgItem(hwndDlg, IDCANCEL), &rectIDCANCEL);
+			/**
+			 * Don't forget to return FALSE in WM_INITDIALOG, as the focus should be set to IDCANCEL
+			 * (at least if the clean-up process has taken place before).
+			 */
+			return FALSE;
+		case WM_PAINT:
+			// For more information, see under: https://learn.microsoft.com/en-us/windows/win32/gdi/wm-paint
+			if (g_bTimerIsCreated == TRUE && g_iCounter >= 0)
+			{
+				_stprintf_s(szBuffer, MAX_LOADSTRING, szBtnCancelCaptionWithTimer, g_iCounter);
+				SetDlgItemText(hwndDlg, IDCANCEL, szBuffer);
+			}
+			// The timer has expired. The window should be closed now.
+			if (g_bTimerIsCreated == TRUE && g_iCounter < 0)
+			{
+				onClose(hwndDlg);
+			}
+			return FALSE;
 		case WM_COMMAND:
 			switch(LOWORD(wParam))
 			{
@@ -212,13 +248,25 @@ INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					return TRUE;
 				// Click on the action button for cmd run.
 				case IDC_BUTTON_CMD:
-					//SendDlgItemMessage(hwndDlg, IDC_PICTURE, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBitmapLogo);
 					onClick_ButtonCmd();
 					return TRUE;
 				// Click on the close button (X).
 				case IDCANCEL:
 					onClose(hwndDlg); 
 					return TRUE;
+			}
+			break;
+		case WM_CTLCOLORSTATIC:
+			// Color text note for IDC_STATIC_CLEANUP_ALREADY_RAN in red.
+			if ((HWND) lParam == GetDlgItem(hwndDlg, IDC_STATIC_CLEANUP_ALREADY_RAN))
+			{
+				// I use a system brush (GetStockObject()) to display the note text in the color red.
+				// This does not then have to be made explicitly free (DeleteObject()).
+				// See also under: https://learn.microsoft.com/de-de/windows/win32/controls/wm-ctlcolorstatic
+				hBrushStatic = (HBRUSH) GetStockObject(HOLLOW_BRUSH);
+				SetBkMode((HDC) wParam, TRANSPARENT);
+				SetTextColor((HDC) wParam, colorRef[0]);
+				return (INT_PTR) hBrushStatic;
 			}
 			break;
 		case WM_CLOSE:
@@ -245,7 +293,23 @@ INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			// Close the application.
 			DestroyWindow(hwndDlg);
 			return TRUE;
+		case WM_TIMER:
+			// For more information, see under: https://learn.microsoft.com/en-us/windows/win32/winmsg/wm-timer
+			switch (wParam)
+			{
+				case ID_TIMER1:
+					g_iCounter--;
+					// Cause the IDCANCEL button to be redrawn after the value (countdown) in the timer is updated.
+					InvalidateRect(hwndDlg, &rectIDCANCEL, FALSE);
+					break;
+			}
+			return FALSE;
 		case WM_DESTROY:
+			// Don't forget to kill the timer.
+			if (g_bTimerIsCreated == TRUE)
+			{
+				KillTimer(hwndDlg, ID_TIMER1);
+			}
 			PostQuitMessage(0);
 			return TRUE;
 	}
@@ -279,6 +343,37 @@ void onInit(HWND hwndDlg, WPARAM wParam)
 		UpdateWindow(hwndDlg);
 	}
 	SetDlgItemText(hwndDlg, IDC_STATIC_LOGICAL_DRIVES, szBuffer);
+	
+	/**
+	 * Check if the cleanup action has already taken place.
+	 * In this case, the application will automatically exit after a specified period of time.
+	 * For this purpose, it is checked whether the label of the volume C:\ has the temporary name "cleaned".
+	 * To differentiate: After a (complete) Windows installation, the volume C:\ has the label "windows".
+	 */
+	if (IsDiskCleaned(szDiskLetter, szDiskLabel) == TRUE)
+	{
+		// Show notice that Cleanup has already run.
+		SetDlgItemText(hwndDlg, IDC_STATIC_CLEANUP_ALREADY_RAN, szNoteDiskAlreadyCleaned);
+		ShowWindow(GetDlgItem(hwndDlg, IDC_STATIC_CLEANUP_ALREADY_RAN), SW_SHOW);
+		UpdateWindow(hwndDlg);
+
+		// Set the focus on the IDCANCEL button.
+		// For this purpose, the dialogue is told that IDCANCEL is the default button.
+		// In addition, the OK button should initially be given the style BS_PUSHBUTTON.
+		SendDlgItemMessage(hwndDlg, IDOK, BM_SETSTYLE, BS_PUSHBUTTON, (LONG)TRUE);
+		SendMessage(hwndDlg, DM_SETDEFID, IDCANCEL, 0L);
+
+		// IDCANCEL itself must also be informed of this.
+		SendDlgItemMessage(hwndDlg, IDCANCEL, BM_SETSTYLE, BS_DEFPUSHBUTTON, (LONG)TRUE);		
+
+		// Only then can the focus be successfully set on IDCANCEL.
+		SetFocus(GetDlgItem(hwndDlg, IDCANCEL));
+
+		// Create a timer to automatically close the application.
+		// This timer has an interval of 1 second (1000 ms), i.e. it receives a notification of type WM_TIMER 1x per second..
+		// For more information, see under: https://learn.microsoft.com/en-us/windows/win32/winmsg/using-timers
+		g_bTimerIsCreated = (BOOL)SetTimer(hwndDlg, ID_TIMER1, 1000, (TIMERPROC) NULL);
+	}
 
 	// Get the module path.
 	g_pstrExePath = GetOwnPath();
@@ -314,7 +409,7 @@ void onInit(HWND hwndDlg, WPARAM wParam)
  */
 void onClose(HWND hwnd)
 {
-	SendMessage(hwnd, WM_CLOSE, 0, 0);
+	SendMessage(hwnd, WM_CLOSE, 0, 0L);
 }
 
 /**
@@ -326,6 +421,15 @@ void onAction(HWND hDlg, action_type action)
 	DWORD rcRunAction = 0;
 
 	memset(szBuffer, 0, sizeof(szBuffer));
+
+	// Check if the timer is running, then stop it and change the caption of the 'skip' button to the default value.
+	if (g_bTimerIsCreated == TRUE)
+	{
+		KillTimer(hDlg, ID_TIMER1);
+		g_bTimerIsCreated = FALSE;
+		SetDlgItemText(hDlg, IDCANCEL, szBtnCancelCaption);
+		UpdateWindow(GetDlgItem(hDlg, IDCANCEL));
+	}
 
 	// Cleanup action.
 	if (action == CLEANUP)
@@ -608,7 +712,7 @@ const TCHAR * GetLogicalDriveList(DWORD * dwDrivesCount)
 			_stprintf_s(drivePattern, sizeof(drivePattern)/sizeof(TCHAR), TEXT("%c:\\ "), TEXT('A') + i);
 			
 			// Merge all drives found into one string.
-			_tcsncat(ptrDrives, drivePattern, newSize); 
+			_tcsncat_s(ptrDrives, newSize, drivePattern, _TRUNCATE);
 		}
 	}
 
@@ -617,4 +721,31 @@ const TCHAR * GetLogicalDriveList(DWORD * dwDrivesCount)
 
 	// Return a concatenated string of found drives.
 	return ptrDrives;
+}
+
+/**
+ * Checks whether Cleanup had run.
+ * This is recognized by whether the label name of the (primary) volume, usually C:\,
+ * is "cleaned" (or as specified under szCompWithLabel (see also in the diskpart.txt)).
+ */
+BOOL IsDiskCleaned(const TCHAR * szDiskLetter, const TCHAR * szCompWithLabel)
+{
+	TCHAR volumeName[MAX_PATH + 1] = _T(""), fileSystemName[MAX_PATH + 1] = _T("");
+	DWORD maximumComponentLength, fileSystemFlags;
+	
+	if (szDiskLetter == NULL || szCompWithLabel == NULL)
+	{
+		return FALSE;
+	}
+
+	// Get information about the volume.
+	if (GetVolumeInformation(szDiskLetter, volumeName, MAX_PATH + 1, NULL,
+		&maximumComponentLength, &fileSystemFlags, fileSystemName, MAX_PATH + 1) == FALSE)
+	{
+		return FALSE;
+	}
+
+	// Compare the determined label name (volumeName) from the szDiskLetter drive with the label name passed via szCompWithLabel.
+	// If both match (TRUE), then Cleanup has already been executed.
+	return (_tcsicmp(szCompWithLabel, volumeName) == 0);
 }

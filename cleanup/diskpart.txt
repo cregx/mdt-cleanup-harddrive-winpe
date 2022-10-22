@@ -2,6 +2,6 @@ sel dis 0
 clean
 create partition primary
 active
-format fs=ntfs quick
+format fs=ntfs label="cleaned" quick
 assign
 exit
