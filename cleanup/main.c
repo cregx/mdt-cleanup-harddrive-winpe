@@ -119,7 +119,7 @@ WCHAR szNoteDiskAlreadyCleaned[MAX_LOADSTRING];
 
 // Don't forget to increase the version number in the resource file (cleanup.rc).
 #ifdef NLS
-const LPCWSTR szAppVer		= TEXT("1.0.5 (%s) / 22. October 2022");
+const LPCWSTR szAppVer		= TEXT("1.0.5 (%s) / 22. Oktober 2022");
 #else
 const LPCWSTR szAppVer		= TEXT("1.0.5 (%s) / 22. October 2022");
 #endif
