@@ -1,6 +1,13 @@
 # Cleanup
- [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE.md) [![Visual Studio](https://badgen.net/badge/icon/visualstudio?icon=visualstudio&label)](https://visualstudio.microsoft.com) [![GitHub all releases](https://img.shields.io/github/downloads/cregx/mdt-cleanup-harddrive-winpe/total?color=green&label=download%20all%20releases)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/releases)
- 
+[![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE.md)
+[![Visual Studio](https://badgen.net/badge/icon/visualstudio?icon=visualstudio&label)](https://visualstudio.microsoft.com)
+[![GitHub issues](https://img.shields.io/github/issues/cregx/mdt-cleanup-harddrive-winpe)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/issues)
+![GitHub closed issues](https://img.shields.io/github/issues-closed/cregx/mdt-cleanup-harddrive-winpe)
+[![GitHub all releases](https://img.shields.io/github/downloads/cregx/mdt-cleanup-harddrive-winpe/total?color=green&label=download%20all%20releases)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/releases)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/cregx/mdt-cleanup-harddrive-winpe)
+[![GitHub stars](https://img.shields.io/github/stars/cregx/mdt-cleanup-harddrive-winpe)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/stargazers)
+
+
 The WinPE UI application "cleanup" provides the ability to easily wipe the primary hard disk before a Microsoft Deployment Toolkit (MDT) based Lite Touch installation begins, i.e. before the LTI Wizard starts.
 
 Cleanup is a Win32 application created in (Microsoft) C and Visual Studio 2010. Of course, you can also compile the project using a newer version of Visual Studio, such as 2019, or you can use an already compiled release version.
@@ -19,7 +26,7 @@ sel dis 0
 clean
 create partition primary
 active
-format fs=ntfs quick
+format fs=ntfs label="cleaned" quick
 assign
 exit
 ```
@@ -32,7 +39,7 @@ I found out that you can run a simple Visual Basic script with this task before 
 
 However, since I wanted to make the script a little more pleasant (nicer :blush:), I had to come up with a GUI-based solution: **cleanup**.
 <p align="center" width="100%">
-<img alt="Cleanup UI" src="https://user-images.githubusercontent.com/14788832/192137636-c4bb472c-d7f1-4b4a-954a-c36dcb0c4919.png" width="50%" height="50%" />
+<img alt="Cleanup UI" src="https://user-images.githubusercontent.com/14788832/197330759-723bac4b-48b6-43e2-a721-43758aadd8bb.png" width="50%" height="50%" />
 </p>
 
 #### Components of the solution
