@@ -102,6 +102,14 @@ The solution consists of the following three components:
 
 ## FAQ
 
+### :question: What makes Cleanup better than just using Diskpart, besides a graphical user interface?
+
+Clenaup was developed because I observed in a project running over a long period of time with many offline installations that the respective installation administrators (with varying levels of knowledge) kept running into installation problems. The installations crashed here and there, and the solution was to clean up the disk with Diskpart.
+But the real problem is that the administrators involved have less and less time and a quick and pragmatic solution is needed. So it's best if the hard disk problem doesn't occur in the first place.
+
+So what makes it better than Diskpart, apart from a graphical user interface?
+In this case - it is more efficient.
+
 ### :question: How much time should I expect to spend trying out the solution in my environment?
 
 It is very difficult to give a general answer. But if you can already create ISO images with your installation, then this should not take more than **5-10 minutes**.
