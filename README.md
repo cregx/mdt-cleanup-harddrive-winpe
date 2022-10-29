@@ -122,13 +122,23 @@ Just revise all the strings you want and then create a new build. Finally, you c
 
 If you are not able to create your own NLS version, please contact me and tell me your translations in the process. I will then create an appropriate version for you and make it available for download under Releases.
 
+### :question: Can Cleanup determine if drive 0 is the expected target drive and not the USB drive that was booted from?
+
+No, at the moment (October 2022) that is not the case.
+However, tests with many installations on various fairly current hardware models (Fujitsu, Hewlett Packard and Dell) have so far shown that the respective and different UEFI BIOS always recognized the internally installed hard drive as disk 0.
+
+This was also the case when using a modern boot flash drive (Corsair GTX (128 GB)), which was recognized by the ```wmic``` as ```external hard disk medium```.
+It is quite relevant to mention at this point that a "classic" USB flash drive is recognized by the ```wmic``` as ```removable media```.
+
+I currently assume that the BIOS uses both the size of the disk and its connection (USB controller, etc.) to (correctly) determine disk 0. 
+
 ### :question: I have included Cleanup in my LTI solution, but I would like to remove it now. How can I do that?
 
 You need to undo the following adjustments:
 
-- the entry in ```C:\Program Files\Microsoft Deployment Toolkit\Templates\Unattend_PE_x64.xml```,
-- of the property in DeploymentShare (```Extra directory to add```). After that the directory with the release files (e.g. ```C:\DeploymentShare Extra\Cleanup```) can be deleted.
-- Finally, and most importantly, **delete** the ```content``` directory in the ```DeploymentMedia``` folder and **update** the ```Deployment Share``` (this will completely recreate this folder). If you omit this step, the files cleanup.exe, diskpart.txt and action.bat will remain in your WinPE (ISO file).
+1. Remove the entry in ```C:\Program Files\Microsoft Deployment Toolkit\Templates\Unattend_PE_x64.xml```.
+2. Remove the property in DeploymentShare ```Extra directory to add```, then delete the directory containing the release files (e.g. ```C:\DeploymentShare Extra\Cleanup```).
+3. Finally, and most importantly, **delete** the ```content``` directory in the ```DeploymentMedia``` folder and **update** the ```Deployment Share``` (this will completely recreate this folder). If you omit this step, the files cleanup.exe, diskpart.txt and action.bat will remain in your WinPE (ISO file).
 
 ## Code of Conduct
 
