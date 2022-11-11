@@ -130,7 +130,9 @@ However, tests with many installations on various fairly current hardware models
 This was also the case when using a modern boot flash drive (Corsair GTX (128 GB)), which was recognized by the ```wmic``` as ```external hard disk medium```.
 It is quite relevant to mention at this point that a "classic" USB flash drive is recognized by the ```wmic``` as ```removable media```.
 
-I currently assume that the BIOS uses both the size of the disk and its connection (USB controller, etc.) to (correctly) determine disk 0. 
+I currently assume that the BIOS uses both the size of the disk and its connection (USB controller, etc.) to (correctly) determine disk 0.
+
+However, it is also important to note that the SATA controller mode in the device BIOS must be set to ```AHCI```. When using RAID, problems are bound to occur and Cleanup **will not work**.
 
 ### :question: I have included Cleanup in my LTI solution, but I would like to remove it now. How can I do that?
 
