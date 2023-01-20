@@ -143,6 +143,17 @@ You need to undo the following adjustments:
 2. Remove the property in DeploymentShare ```Extra directory to add```, then delete the directory containing the release files (e.g. ```C:\DeploymentShare Extra\Cleanup```).
 3. Finally, and most importantly, **delete** the ```content``` directory in the ```DeploymentMedia``` folder and **update** the ```Deployment Share``` (this will completely recreate this folder). If you omit this step, the files cleanup.exe, diskpart.txt and action.bat will remain in your WinPE (ISO file).
 
+## Stargazers, Forkers & other users
+
+Thanks to all for using Cleanup.
+
+### Stargazers
+
+[![Stargazers repo roster for @cregx/mdt-cleanup-harddrive-winpe](https://reporoster.com/stars/cregx/mdt-cleanup-harddrive-winpe)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/stargazers)
+
+### Forkers
+[![Forkers repo roster for @cregx/mdt-cleanup-harddrive-winpe](https://reporoster.com/forks/cregx/mdt-cleanup-harddrive-winpe)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/network/members)
+
 ## Code of Conduct
 
 Please refer to the [Code of Conduct](https://github.com/cregx/mdt-cleanup-harddrive-winpe/blob/main/CODE_OF_CONDUCT.md) for this repository.
