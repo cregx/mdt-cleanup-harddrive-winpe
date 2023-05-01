@@ -9,7 +9,7 @@
 [![Github All Releases](https://img.shields.io/github/downloads/cregx/mdt-cleanup-harddrive-winpe/total.svg)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/releases)
 [![Code-Signed](https://img.shields.io/badge/code--signed%20exe-Yes-green)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/releases)
 
-The WinPE UI application "cleanup" provides the ability to easily wipe the primary hard disk before a Microsoft Deployment Toolkit (MDT) based Lite Touch installation begins, i.e. before the LTI Wizard starts.
+The WinPE UI application "Cleanup" provides the ability to easily wipe the primary hard disk before a Microsoft Deployment Toolkit (MDT) based Lite Touch installation begins, i.e. before the LTI Wizard starts.
 
 <p align="center" width="100%">
 <img alt="Cleanup-Social-Media-Logo" src="https://user-images.githubusercontent.com/14788832/214246135-8980f5c5-ad8e-4183-8ba3-43438a333afd.png" width="100%" height="100%" />
@@ -36,13 +36,15 @@ assign
 exit
 ```
 
+(The ```label="cleaned"``` parameter is of course not needed for manual cleaning. The above example corresponds to the solution used by Cleanup.)
+
 ### An alternative to a pure script-based solution
 In the long run, however, I did not like the manual solution and so an additional step in the task sequence was supposed to solve the problem for me.
 However, it quickly turns out that this was not so easy in the MDT because I needed to reboot the system after cleaning up the hard disk and so the task sequence would run over and over again (there may be a solution for this too - but I don't know it).
 
 I found out that you can run a simple Visual Basic script with this task before running the actual installation. That was the solution!
 
-However, since I wanted to make the script a little more pleasant (nicer :blush:), I had to come up with a GUI-based solution: **cleanup**.
+However, since I wanted to make the script a little more pleasant (nicer :blush:), I had to come up with a GUI-based solution: **Cleanup**.
 <p align="center" width="100%">
 <img alt="Cleanup UI" src="https://user-images.githubusercontent.com/14788832/197330759-723bac4b-48b6-43e2-a721-43758aadd8bb.png" width="50%" height="50%" />
 </p>
