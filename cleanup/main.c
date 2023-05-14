@@ -4,7 +4,7 @@
  * For further information, please refer to the attached LICENSE.md
  * 
  * The MIT License (MIT)
- * Copyright (c) 2022 Christoph Regner
+ * Copyright (c) 2023 Christoph Regner
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,9 +35,6 @@
 /**
  * Win32-based UI application to erase the primary hard disk as part
  * of a Lite Touch installation (WinPE / MDT). Build with Visual Studio 2010.
- *
- * MIT License
- * Copyright (c) Christoph Regner October 2022
  **/
 #define WIN32_LEAN_AND_MEAN
 
@@ -116,12 +113,13 @@ WCHAR szAppLang[MAX_LOADSTRING];
 WCHAR szLogicalDrivesList[MAX_LOADSTRING];
 WCHAR szLogicalDrivesListIsEmpty[MAX_LOADSTRING];
 WCHAR szNoteDiskAlreadyCleaned[MAX_LOADSTRING];
+WCHAR szCheckBoxRestartCaption[MAX_LOADSTRING];
 
 // Don't forget to increase the version number in the resource file (cleanup.rc).
 #ifdef NLS
-const LPCWSTR szAppVer		= TEXT("1.0.5 (%s) / 22. Oktober 2022");
+const LPCWSTR szAppVer		= TEXT("1.1.6 (%s) / 14. Mai 2023");
 #else
-const LPCWSTR szAppVer		= TEXT("1.0.5 (%s) / 22. October 2022");
+const LPCWSTR szAppVer		= TEXT("1.1.6 (%s) / 14. May 2023");
 #endif
 
 const LPCWSTR szBatchFileName	= TEXT("action.bat");
@@ -144,63 +142,64 @@ const DWORD RUN_ACTION_CANCELLED_BY_USER= 0xC000013A;			// dec => 3221225786
 // Main function.
 int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdShow)
 {
-  HWND hDlg;
-  MSG msg;
-  BOOL ret;
+	HWND hDlg;
+	MSG msg;
+	BOOL ret;
 
-#ifdef NLS
-  LoadString(hInst, IDS_APP_LANG_NLS, szAppLang, MAX_LOADSTRING);
-  LoadString(hInst, IDS_BTN_ACTION_CAPTION_NLS, szBtnActionCaption, MAX_LOADSTRING);
-  LoadString(hInst, IDS_BTN_CANCEL_CAPTION_NLS, szBtnCancelCaption, MAX_LOADSTRING);
-  LoadString(hInst, IDS_APP_ACTION_EXPLANATION_NLS, szAppActionExpl, MAX_LOADSTRING);
-  LoadString(hInst, IDS_APP_ACTION_REQUEST_NLS, szAppActionRequest, MAX_LOADSTRING);
-  LoadString(hInst, IDS_TITLE_NLS, szAppDialogTitle, MAX_LOADSTRING);
-  LoadString(hInst, IDS_APPV, szAppVersion, MAX_LOADSTRING);
-  LoadString(hInst, IDS_RUN_ACTION_TITLE_NLS, szRunActionText, MAX_LOADSTRING);
-  LoadString(hInst, IDS_RUN_ACTION_WARNING_NLS, szActionWarning, MAX_LOADSTRING); 
-  LoadString(hInst, IDS_RUN_ACTION_SUCCESSFUL_NLS, szActionSuccessful, MAX_LOADSTRING);
-  LoadString(hInst, IDS_RUN_ACTION_FAILED_NLS, szActionFailed, MAX_LOADSTRING);
-  LoadString(hInst, IDS_RUN_ACTION_CANCELED_NLS, szActionCancelled, MAX_LOADSTRING);
-  LoadString(hInst, IDS_RUN_ACTION_FILE_NOT_FOUND_NLS, szActionFileNotFound, MAX_LOADSTRING);
-  LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_NLS, szLogicalDrivesList, MAX_LOADSTRING);
-  LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_IS_EMPTY_NLS, szLogicalDrivesListIsEmpty, MAX_LOADSTRING);
-  LoadString(hInst, IDS_BTN_CANCEL_CAPTION_WITH_TIMER_NLS, szBtnCancelCaptionWithTimer, MAX_LOADSTRING);
-  LoadString(hInst, IDS_APP_NOTE_DISK_ALREADY_CLEANED_NLS, szNoteDiskAlreadyCleaned, MAX_LOADSTRING);
-#else
-  LoadString(hInst, IDS_APP_LANG, szAppLang, MAX_LOADSTRING);
-  LoadString(hInst, IDS_BTN_ACTION_CAPTION, szBtnActionCaption, MAX_LOADSTRING);
-  LoadString(hInst, IDS_BTN_CANCEL_CAPTION, szBtnCancelCaption, MAX_LOADSTRING);
-  LoadString(hInst, IDS_APP_ACTION_EXPLANATION, szAppActionExpl, MAX_LOADSTRING);
-  LoadString(hInst, IDS_TITLE, szAppDialogTitle, MAX_LOADSTRING);
-  LoadString(hInst, IDS_APP_ACTION_REQUEST, szAppActionRequest, MAX_LOADSTRING);
-  LoadString(hInst, IDS_APPV, szAppVersion, MAX_LOADSTRING);
-  LoadString(hInst, IDS_RUN_ACTION_TITLE, szRunActionText, MAX_LOADSTRING);
-  LoadString(hInst, IDS_RUN_ACTION_WARNING, szActionWarning, MAX_LOADSTRING); 
-  LoadString(hInst, IDS_RUN_ACTION_SUCCESSFUL, szActionSuccessful, MAX_LOADSTRING);
-  LoadString(hInst, IDS_RUN_ACTION_FAILED, szActionFailed, MAX_LOADSTRING);
-  LoadString(hInst, IDS_RUN_ACTION_CANCELED, szActionCancelled, MAX_LOADSTRING);
-  LoadString(hInst, IDS_RUN_ACTION_FILE_NOT_FOUND, szActionFileNotFound, MAX_LOADSTRING);
-  LoadString(hInst, IDS_LOGICAL_DRIVES_LIST, szLogicalDrivesList, MAX_LOADSTRING);
-  LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_IS_EMPTY, szLogicalDrivesListIsEmpty, MAX_LOADSTRING);
-  LoadString(hInst, IDS_BTN_CANCEL_CAPTION_WITH_TIMER, szBtnCancelCaptionWithTimer, MAX_LOADSTRING);
-  LoadString(hInst, IDS_APP_NOTE_DISK_ALREADY_CLEANED, szNoteDiskAlreadyCleaned, MAX_LOADSTRING);
-#endif
+	#ifdef NLS
+	LoadString(hInst, IDS_APP_LANG_NLS, szAppLang, MAX_LOADSTRING);
+	LoadString(hInst, IDS_BTN_ACTION_CAPTION_NLS, szBtnActionCaption, MAX_LOADSTRING);
+	LoadString(hInst, IDS_BTN_CANCEL_CAPTION_NLS, szBtnCancelCaption, MAX_LOADSTRING);
+	LoadString(hInst, IDS_APP_ACTION_EXPLANATION_NLS, szAppActionExpl, MAX_LOADSTRING);
+	LoadString(hInst, IDS_APP_ACTION_REQUEST_NLS, szAppActionRequest, MAX_LOADSTRING);
+	LoadString(hInst, IDS_TITLE_NLS, szAppDialogTitle, MAX_LOADSTRING);
+	LoadString(hInst, IDS_APPV, szAppVersion, MAX_LOADSTRING);
+	LoadString(hInst, IDS_RUN_ACTION_TITLE_NLS, szRunActionText, MAX_LOADSTRING);
+	LoadString(hInst, IDS_RUN_ACTION_WARNING_NLS, szActionWarning, MAX_LOADSTRING);
+	LoadString(hInst, IDS_RUN_ACTION_FAILED_NLS, szActionFailed, MAX_LOADSTRING);
+	LoadString(hInst, IDS_RUN_ACTION_CANCELED_NLS, szActionCancelled, MAX_LOADSTRING);
+	LoadString(hInst, IDS_RUN_ACTION_FILE_NOT_FOUND_NLS, szActionFileNotFound, MAX_LOADSTRING);
+	LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_NLS, szLogicalDrivesList, MAX_LOADSTRING);
+	LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_IS_EMPTY_NLS, szLogicalDrivesListIsEmpty, MAX_LOADSTRING);
+	LoadString(hInst, IDS_BTN_CANCEL_CAPTION_WITH_TIMER_NLS, szBtnCancelCaptionWithTimer, MAX_LOADSTRING);
+	LoadString(hInst, IDS_APP_NOTE_DISK_ALREADY_CLEANED_NLS, szNoteDiskAlreadyCleaned, MAX_LOADSTRING);
+	LoadString(hInst, IDS_CB_RESTART_NLS, szCheckBoxRestartCaption, MAX_LOADSTRING); 
+	#else
+	LoadString(hInst, IDS_APP_LANG, szAppLang, MAX_LOADSTRING);
+	LoadString(hInst, IDS_BTN_ACTION_CAPTION, szBtnActionCaption, MAX_LOADSTRING);
+	LoadString(hInst, IDS_BTN_CANCEL_CAPTION, szBtnCancelCaption, MAX_LOADSTRING);
+	LoadString(hInst, IDS_APP_ACTION_EXPLANATION, szAppActionExpl, MAX_LOADSTRING);
+	LoadString(hInst, IDS_TITLE, szAppDialogTitle, MAX_LOADSTRING);
+	LoadString(hInst, IDS_APP_ACTION_REQUEST, szAppActionRequest, MAX_LOADSTRING);
+	LoadString(hInst, IDS_APPV, szAppVersion, MAX_LOADSTRING);
+	LoadString(hInst, IDS_RUN_ACTION_TITLE, szRunActionText, MAX_LOADSTRING);
+	LoadString(hInst, IDS_RUN_ACTION_WARNING, szActionWarning, MAX_LOADSTRING);
+	LoadString(hInst, IDS_RUN_ACTION_FAILED, szActionFailed, MAX_LOADSTRING);
+	LoadString(hInst, IDS_RUN_ACTION_CANCELED, szActionCancelled, MAX_LOADSTRING);
+	LoadString(hInst, IDS_RUN_ACTION_FILE_NOT_FOUND, szActionFileNotFound, MAX_LOADSTRING);
+	LoadString(hInst, IDS_LOGICAL_DRIVES_LIST, szLogicalDrivesList, MAX_LOADSTRING);
+	LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_IS_EMPTY, szLogicalDrivesListIsEmpty, MAX_LOADSTRING);
+	LoadString(hInst, IDS_BTN_CANCEL_CAPTION_WITH_TIMER, szBtnCancelCaptionWithTimer, MAX_LOADSTRING);
+	LoadString(hInst, IDS_APP_NOTE_DISK_ALREADY_CLEANED, szNoteDiskAlreadyCleaned, MAX_LOADSTRING);
+	LoadString(hInst, IDS_CB_RESTART, szCheckBoxRestartCaption, MAX_LOADSTRING);
+	#endif
 
-  InitCommonControls();
-  hDlg = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_DIALOG1), 0, DialogProc, 0);
-  ShowWindow(hDlg, nCmdShow);  // ShowWindows() need usually UpdateWindow() if you need to force the WM_PAINT.
+	InitCommonControls();
+	hDlg = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_DIALOG1), 0, DialogProc, 0);
+	ShowWindow(hDlg, nCmdShow);  // ShowWindows() need usually UpdateWindow() if you need to force the WM_PAINT.
 
-  while((ret = GetMessage(&msg, 0, 0, 0)) != 0) {
-    if(ret == -1)
-      return -1;
+	while((ret = GetMessage(&msg, 0, 0, 0)) != 0) {
+		if(ret == -1)
+		{
+			return -1;
+		}
 
-    if(!IsDialogMessage(hDlg, &msg)) {
-      TranslateMessage(&msg);
-      DispatchMessage(&msg);
-    }
-  }
-
-  return 0;
+		if(!IsDialogMessage(hDlg, &msg)) {
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
+	return 0;
 }
 
 /**
@@ -390,6 +389,10 @@ void onInit(HWND hwndDlg, WPARAM wParam)
 	SetDlgItemText(hwndDlg, IDC_STATIC_EXPLANATION, szAppActionExpl);
 	SetDlgItemText(hwndDlg, IDC_BUTTON_CLEANUP, szBtnActionCaption);
 	SetDlgItemText(hwndDlg, IDCANCEL, szBtnCancelCaption);
+	SetDlgItemText(hwndDlg, IDC_CHECKBOX_RESTART, szCheckBoxRestartCaption);
+
+	// Initialization of the restart option checkbox (checked).
+	SendMessage(GetDlgItem(hwndDlg, IDC_CHECKBOX_RESTART), BM_SETCHECK, 1, 0L);
 
 	// App version.
 	_stprintf_s(szVersion, 128, szAppVer, szAppLang);  
@@ -419,6 +422,7 @@ void onAction(HWND hDlg, action_type action)
 { 
 	TCHAR szBuffer[MAX_BUFFER_SIZE];
 	DWORD rcRunAction = 0;
+	BOOL bSystemRestart = FALSE;
 
 	memset(szBuffer, 0, sizeof(szBuffer));
 
@@ -441,10 +445,26 @@ void onAction(HWND hDlg, action_type action)
 
 			if (rcRunAction == RUN_ACTION_SUCCESSFUL)
 			{
+				// Check whether the system should be restarted after the cleanup is complete.
+				bSystemRestart = (int) SendMessage(GetDlgItem(hDlg, IDC_CHECKBOX_RESTART), BM_GETCHECK, 0, 0L);
+
+				// Set the appropriate message for the message box.
+				#ifdef NLS
+				LoadString(NULL, bSystemRestart ? IDS_RUN_ACTION_SUCCESSFUL_WITH_REBOOT_NLS : IDS_RUN_ACTION_SUCCESSFUL_NLS,
+							szActionSuccessful, MAX_LOADSTRING);
+				#else
+				LoadString(NULL, bSystemRestart ? IDS_RUN_ACTION_SUCCESSFUL_WITH_REBOOT : IDS_RUN_ACTION_SUCCESSFUL,
+							szActionSuccessful, MAX_LOADSTRING);
+				#endif
+				// Show the message box with the appropriate message.
 				MessageBox(hDlg, szActionSuccessful, szRunActionText, MB_ICONINFORMATION | MB_OK);
 				
-				// Restart the system now.
-				Action(szRestartExe, szRestartExeParams, SW_HIDE);
+				// If system restart is required, restart the system now.
+				if (bSystemRestart == TRUE)
+				{					
+					// Restart the system now.
+					Action(szRestartExe, szRestartExeParams, SW_HIDE);
+				}
 				return;
 			}
 			else if (rcRunAction == RUN_ACTION_CANCELLED_BY_USER)
