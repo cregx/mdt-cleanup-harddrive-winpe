@@ -26,7 +26,7 @@ I was able to trace this back to a hard disk that had not been cleaned (I also f
 The solution to the problem was also relatively simple: I had to do nothing other than run the Diskpart tool in a CMD shell before starting the actual  installation:
 
 ```
-diskpart.exe
+C:\>diskpart.exe
 sel dis 0
 clean
 create partition primary
