@@ -46,7 +46,7 @@ I found out that you can run a simple Visual Basic script with this task before 
 
 However, since I wanted to make the script a little more pleasant (nicer :blush:), I had to come up with a GUI-based solution: **Cleanup**.
 <p align="center" width="100%">
-<img alt="Cleanup UI" src="https://user-images.githubusercontent.com/14788832/197330759-723bac4b-48b6-43e2-a721-43758aadd8bb.png" width="50%" height="50%" />
+    <img alt="Cleanup UI" src="https://user-images.githubusercontent.com/14788832/197330759-723bac4b-48b6-43e2-a721-43758aadd8bb.png" width="50%" height="50%" />
 </p>
 
 #### Components of the solution
@@ -58,7 +58,7 @@ The solution consists of the following three components:
 
 #### Rough flowchart
 <p align="center" width="100%">
-<img alt="Cleanup rough flowchar" src="https://user-images.githubusercontent.com/14788832/170816759-b73ac160-d741-463c-8e67-82d7d79252ab.svg" width="45%" height="45%" />
+    <img alt="Cleanup rough flowchar" src="https://github.com/cregx/mdt-cleanup-harddrive-winpe/assets/14788832/763b3366-2d8e-44c2-9e65-8726fe86207d" width="35%" height="35%" />    
 </p>
 
 ### Implement cleanup in own LTI-Deployment (step by step instructions)
