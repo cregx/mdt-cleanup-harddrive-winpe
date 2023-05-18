@@ -148,7 +148,7 @@ You need to undo the following adjustments:
 
 1. Remove the entry in ```C:\Program Files\Microsoft Deployment Toolkit\Templates\Unattend_PE_x64.xml```.
 2. Remove the property in DeploymentShare ```Extra directory to add```, then delete the directory containing the release files (e.g. ```C:\DeploymentShare Extra\Cleanup```).
-3. Finally, and most importantly, **delete** the ```content``` directory in the ```DeploymentMedia``` folder and **update** the ```Deployment Share``` (this will completely recreate this folder). If you omit this step, the files cleanup.exe, diskpart.txt and action.bat will remain in your WinPE (ISO file).
+3. Finally, and most importantly, **delete** the ```content``` directory in the ```DeploymentMedia``` folder and **update** the ```Deployment Share``` (this will completely recreate this folder). If you omit this step, the files cleanup.exe, diskpart.txt and action.bat will remain in your WinPE (ISO file). _Before deleting this directory, make sure to create a backup copy of it. **Important:** Especially when dealing with specific customizations, such as creating your own wizard dialogs, there is a possibility that deleting and recreating the directory may reset modifications that will later need to be painstakingly restored.
 
 ## Stargazers, Forkers & other users
 
