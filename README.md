@@ -63,7 +63,7 @@ The solution consists of the following three components:
     <img alt="Cleanup rough flowchar" src="https://github.com/cregx/mdt-cleanup-harddrive-winpe/assets/14788832/763b3366-2d8e-44c2-9e65-8726fe86207d" width="35%" height="35%" />    
 </p>
 
-### Implement cleanup in own LTI-Deployment (step by step instructions)
+### Implement Cleanup in own LTI-Deployment (step by step instructions)
 1. [Download](https://github.com/cregx/mdt-cleanup-harddrive-winpe/releases) a current release version of Cleanup (or compile your own customised version).
 2. Place the three files (cleanup.exe, action.bat, diskpart.txt) in a new directory - for example, in an offline deployment share, e.g. under __C:\DeploymentShare Extra\Cleanup__.
 3. Modify the following template __C:\Program Files\Microsoft Deployment Toolkit\Templates\Unattend_PE_x64.xml__ as shown below. This will cause Cleanup to run immediately before Lite Touch PE starts and thus the Installation Wizard. Look for the first occurrence of the ```<RunSynchronousCommand>``` tag in the text and duplicate it. Do not forget to set the _Order tag_ for the Lite Touch PE to 2 if you have duplicated the code region.
