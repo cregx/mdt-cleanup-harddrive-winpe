@@ -124,7 +124,7 @@ In this case - it is more efficient.
 
 It is very difficult to give a general answer. But if you can already create ISO images with your installation, then this should not take more than **5-10 minutes**.
 
-### :question: How to get cleanup in my local language (National Language Support)?
+### :question: How to get Cleanup in my local language (National Language Support)?
 
 You have to change the resource file cleanup.rc and recompile the project.
 You can find the corresponding resource entries for your language in the ```String Table```. These all contain the suffix ```_NLS``` in their identifier, e.g. ```IDS_RUN_ACTION_FAILED_NLS```. 
