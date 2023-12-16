@@ -158,10 +158,10 @@ Thanks to all for using Cleanup.
 
 ### Stargazers
 
-[![Stargazers repo roster for @cregx/mdt-cleanup-harddrive-winpe](https://reporoster.com/stars/cregx/mdt-cleanup-harddrive-winpe)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/stargazers)
+[![Stargazers repo roster for @cregx/mdt-cleanup-harddrive-winpe](http://reporoster.com/stars/cregx/mdt-cleanup-harddrive-winpe)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/stargazers)
 
 ### Forkers
-[![Forkers repo roster for @cregx/mdt-cleanup-harddrive-winpe](https://reporoster.com/forks/cregx/mdt-cleanup-harddrive-winpe)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/network/members)
+[![Forkers repo roster for @cregx/mdt-cleanup-harddrive-winpe](http://reporoster.com/forks/cregx/mdt-cleanup-harddrive-winpe)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/network/members)
 
 ## Code of Conduct
 
