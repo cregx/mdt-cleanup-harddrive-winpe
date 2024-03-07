@@ -4,7 +4,7 @@ The application was developed by Christoph Regner.
 On the web: https://www.cregx.de
 
 The MIT License (MIT)
-Copyright (c) 2023 Christoph Regner
+Copyright (c) 2024 Christoph Regner
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -4,7 +4,7 @@
  * For further information, please refer to the attached LICENSE.md
  * 
  * The MIT License (MIT)
- * Copyright (c) 2023 Christoph Regner
+ * Copyright (c) 2024 Christoph Regner
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,23 +37,23 @@
  * of a Lite Touch installation (WinPE / MDT). Build with Visual Studio 2010.
  **/
 #define WIN32_LEAN_AND_MEAN
-
 #define _WIN32_WINNT 0x400
 #define _Win32_DCOM
 #define MAX_LOADSTRING 512
 #define MAX_BUFFER_SIZE 1024
 #define ID_TIMER1 1
+#define MIN_LOGICAL_DRIVES 3		//Specifies the minimum number of logical drives required by the application to perform a cleanup operation.
 
 #include <Windows.h>
 #include <CommCtrl.h>
-#include <CommDlg.h>				// Dialogs.
+#include <CommDlg.h>				// Dialogs
 #include <tchar.h>
 #include <Shlwapi.h>				// e.g. For example for shortening long paths. Needed: Shlwapi.lib static linked.
-#include <strsafe.h>				// e.g. Safe string copy.
-#include <ShellAPI.h>				// e.g. SHELLEXECUTEINFO.
-#include <io.h>					// e.g. _access_s (file exists).
+#include <strsafe.h>				// e.g. Safe string copy
+#include <ShellAPI.h>				// e.g. SHELLEXECUTEINFO
+#include <io.h>					// e.g. _access_s (file exists)
 
-#include <Shobjidl.h>				// COM objects.
+#include <Shobjidl.h>				// COM objects
 #include <Objbase.h>
 
 #include "resource.h"
@@ -87,13 +87,14 @@ BOOL FileExists(const wchar_t *);
 void ShowLogo(HWND);
 const TCHAR * GetLogicalDriveList(DWORD *);
 BOOL IsDiskCleaned(const TCHAR *, const TCHAR *);
+void SetCancelBtnAsDefault(HWND);
 
 static HBITMAP hBitmapLogo;
 static HWND hwndLogo;
 
-const TCHAR * g_pstrExePath;				// Full path to the exe.
-const TCHAR * g_pstrActionPath;				// Full path to the batch file.
-const TCHAR * g_pstrActionInstPath;			// Full path to the file with instructions for the batch file.
+const TCHAR * g_pstrExePath;				// Full path to the exe
+const TCHAR * g_pstrActionPath;				// Full path to the batch file
+const TCHAR * g_pstrActionInstPath;			// Full path to the file with instructions for the batch file
 action_type g_currentAction;				// Cleanup or terminate action should be performed?
 
 WCHAR szAppDialogTitle[MAX_LOADSTRING];
@@ -112,14 +113,15 @@ WCHAR szBtnCancelCaptionWithTimer[MAX_LOADSTRING];
 WCHAR szAppLang[MAX_LOADSTRING];
 WCHAR szLogicalDrivesList[MAX_LOADSTRING];
 WCHAR szLogicalDrivesListIsEmpty[MAX_LOADSTRING];
+WCHAR szNotEnoughLogicalDrivesFound[MAX_LOADSTRING];
 WCHAR szNoteDiskAlreadyCleaned[MAX_LOADSTRING];
 WCHAR szCheckBoxRestartCaption[MAX_LOADSTRING];
 
 // Don't forget to increase the version number in the resource file (cleanup.rc).
 #ifdef NLS
-const LPCWSTR szAppVer		= TEXT("1.1.6 (%s) / 14. Mai 2023");
+const LPCWSTR szAppVer		= TEXT("1.2.7 (%s) / 07. March 2024");
 #else
-const LPCWSTR szAppVer		= TEXT("1.1.6 (%s) / 14. May 2023");
+const LPCWSTR szAppVer		= TEXT("1.2.7 (%s) / 07. March 2024");
 #endif
 
 const LPCWSTR szBatchFileName	= TEXT("action.bat");
@@ -128,7 +130,7 @@ const LPCWSTR szRestartExe	= TEXT("wpeutil.exe");
 const LPCWSTR szRestartExeParams= TEXT("reboot");
 const LPCWSTR szDiskLetter = TEXT("C:\\");				// Drive letter of the primary disc, usually C:\.
 const LPCWSTR szDiskLabel = TEXT("cleaned");				// Temporary label of the primary disc (volume) after 'Cleanup' has cleaned the disk.
-									// See also in the diskpart.txt.
+									// See also in the diskpart.txt. 
 INT g_iCounter = 30;							// Countdawn timer counter that uses the time (seconds) to automatically exit 'Cleanup'.
 BOOL g_bTimerIsCreated;							// Signals whether a timer has been created.
 
@@ -139,7 +141,7 @@ const DWORD RUN_ACTION_CANCELLED_BY_USER= 0xC000013A;			// dec => 3221225786
 									// (Cancellation of the batch job by the user,
 									// e.g. because the user has clicked the X button.)
 
-// Main function.
+// Main function
 int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdShow)
 {
 	HWND hDlg;
@@ -161,6 +163,7 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
 	LoadString(hInst, IDS_RUN_ACTION_FILE_NOT_FOUND_NLS, szActionFileNotFound, MAX_LOADSTRING);
 	LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_NLS, szLogicalDrivesList, MAX_LOADSTRING);
 	LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_IS_EMPTY_NLS, szLogicalDrivesListIsEmpty, MAX_LOADSTRING);
+	LoadString(hInst, IDS_NOT_ENOUGH_LOGICAL_DRIVES_FOUND_NLS,szNotEnoughLogicalDrivesFound, MAX_LOADSTRING);
 	LoadString(hInst, IDS_BTN_CANCEL_CAPTION_WITH_TIMER_NLS, szBtnCancelCaptionWithTimer, MAX_LOADSTRING);
 	LoadString(hInst, IDS_APP_NOTE_DISK_ALREADY_CLEANED_NLS, szNoteDiskAlreadyCleaned, MAX_LOADSTRING);
 	LoadString(hInst, IDS_CB_RESTART_NLS, szCheckBoxRestartCaption, MAX_LOADSTRING); 
@@ -179,6 +182,7 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
 	LoadString(hInst, IDS_RUN_ACTION_FILE_NOT_FOUND, szActionFileNotFound, MAX_LOADSTRING);
 	LoadString(hInst, IDS_LOGICAL_DRIVES_LIST, szLogicalDrivesList, MAX_LOADSTRING);
 	LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_IS_EMPTY, szLogicalDrivesListIsEmpty, MAX_LOADSTRING);
+	LoadString(hInst, IDS_NOT_ENOUGH_LOGICAL_DRIVES_FOUND,szNotEnoughLogicalDrivesFound, MAX_LOADSTRING);
 	LoadString(hInst, IDS_BTN_CANCEL_CAPTION_WITH_TIMER, szBtnCancelCaptionWithTimer, MAX_LOADSTRING);
 	LoadString(hInst, IDS_APP_NOTE_DISK_ALREADY_CLEANED, szNoteDiskAlreadyCleaned, MAX_LOADSTRING);
 	LoadString(hInst, IDS_CB_RESTART, szCheckBoxRestartCaption, MAX_LOADSTRING);
@@ -256,8 +260,8 @@ INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			}
 			break;
 		case WM_CTLCOLORSTATIC:
-			// Color text note for IDC_STATIC_CLEANUP_ALREADY_RAN in red.
-			if ((HWND) lParam == GetDlgItem(hwndDlg, IDC_STATIC_CLEANUP_ALREADY_RAN))
+			// Color text note for IDC_STATIC_CLEANUP_IMPORTANT_NOTES in red.
+			if ((HWND) lParam == GetDlgItem(hwndDlg, IDC_STATIC_CLEANUP_IMPORTANT_NOTES))
 			{
 				// I use a system brush (GetStockObject()) to display the note text in the color red.
 				// This does not then have to be made explicitly free (DeleteObject()).
@@ -321,6 +325,7 @@ INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 void onInit(HWND hwndDlg, WPARAM wParam)
 {
 	TCHAR szBuffer[MAX_BUFFER_SIZE];
+	TCHAR szNotes[MAX_BUFFER_SIZE];
 	TCHAR szVersion[128];
 	const TCHAR * szLogicalDrives;
 	DWORD countLogicalDrives = 0;
@@ -333,6 +338,17 @@ void onInit(HWND hwndDlg, WPARAM wParam)
 	if (countLogicalDrives > 0)
 	{
 		_stprintf_s(szBuffer, MAX_BUFFER_SIZE, szLogicalDrivesList, szLogicalDrives);
+		// Fix: #5
+		if (countLogicalDrives <= 2)
+		{
+			// Too few logical drives were detected (see under MIN_LOGICAL_DRIVES). Check the physical presence of the drives!
+			EnableWindow(GetDlgItem(hwndDlg, IDC_BUTTON_CLEANUP), FALSE);
+			_stprintf_s(szNotes, MAX_BUFFER_SIZE, szNotEnoughLogicalDrivesFound, countLogicalDrives, MIN_LOGICAL_DRIVES);
+			SetDlgItemText(hwndDlg, IDC_STATIC_CLEANUP_IMPORTANT_NOTES, szNotes);
+			ShowWindow(GetDlgItem(hwndDlg, IDC_STATIC_CLEANUP_IMPORTANT_NOTES), SW_SHOW);			
+			UpdateWindow(hwndDlg);
+			SetCancelBtnAsDefault(hwndDlg);
+		}
 	}
 	else
 	{
@@ -352,21 +368,10 @@ void onInit(HWND hwndDlg, WPARAM wParam)
 	if (IsDiskCleaned(szDiskLetter, szDiskLabel) == TRUE)
 	{
 		// Show notice that Cleanup has already run.
-		SetDlgItemText(hwndDlg, IDC_STATIC_CLEANUP_ALREADY_RAN, szNoteDiskAlreadyCleaned);
-		ShowWindow(GetDlgItem(hwndDlg, IDC_STATIC_CLEANUP_ALREADY_RAN), SW_SHOW);
+		SetDlgItemText(hwndDlg, IDC_STATIC_CLEANUP_IMPORTANT_NOTES, szNoteDiskAlreadyCleaned);
+		ShowWindow(GetDlgItem(hwndDlg, IDC_STATIC_CLEANUP_IMPORTANT_NOTES), SW_SHOW);
 		UpdateWindow(hwndDlg);
-
-		// Set the focus on the IDCANCEL button.
-		// For this purpose, the dialogue is told that IDCANCEL is the default button.
-		// In addition, the OK button should initially be given the style BS_PUSHBUTTON.
-		SendDlgItemMessage(hwndDlg, IDOK, BM_SETSTYLE, BS_PUSHBUTTON, (LONG)TRUE);
-		SendMessage(hwndDlg, DM_SETDEFID, IDCANCEL, 0L);
-
-		// IDCANCEL itself must also be informed of this.
-		SendDlgItemMessage(hwndDlg, IDCANCEL, BM_SETSTYLE, BS_DEFPUSHBUTTON, (LONG)TRUE);		
-
-		// Only then can the focus be successfully set on IDCANCEL.
-		SetFocus(GetDlgItem(hwndDlg, IDCANCEL));
+		SetCancelBtnAsDefault(hwndDlg);
 
 		// Create a timer to automatically close the application.
 		// This timer has an interval of 1 second (1000 ms), i.e. it receives a notification of type WM_TIMER 1x per second..
@@ -687,7 +692,7 @@ void ShowLogo(HWND hwndDlg)
  */
 const TCHAR * GetLogicalDriveList(DWORD * dwDrivesCount)
 {
-	DWORD drives, i = 0;
+	DWORD drives = 0, i = 0, counter = 0;
 
 	// Allocate memory for the compound string with all logical drives found.
 	// Later, the filled memory will look like this: "C:\ D:\"
@@ -704,6 +709,9 @@ const TCHAR * GetLogicalDriveList(DWORD * dwDrivesCount)
 
 	// newSize contains the size for the reallocation of the required memory.
 	size_t newSize = 0;
+
+	// dwDrivesCount contains the number of physical drives found in the system, e. g. "C:\", "D:\" == 2.
+	*dwDrivesCount = 0;
 	
 	// Detect all logical drives.
 	drives = GetLogicalDrives();
@@ -733,11 +741,14 @@ const TCHAR * GetLogicalDriveList(DWORD * dwDrivesCount)
 			
 			// Merge all drives found into one string.
 			_tcsncat_s(ptrDrives, newSize, drivePattern, _TRUNCATE);
+
+			// Internal counter for available drives (Fix: #5).
+			counter++;
 		}
 	}
 
-	// Return the number of logical drives found as a pointer.
-	*dwDrivesCount = i;
+	// Return the number of logical drives found as a pointer (Fix: #5).
+	*dwDrivesCount = counter;
 
 	// Return a concatenated string of found drives.
 	return ptrDrives;
@@ -768,4 +779,24 @@ BOOL IsDiskCleaned(const TCHAR * szDiskLetter, const TCHAR * szCompWithLabel)
 	// Compare the determined label name (volumeName) from the szDiskLetter drive with the label name passed via szCompWithLabel.
 	// If both match (TRUE), then Cleanup has already been executed.
 	return (_tcsicmp(szCompWithLabel, volumeName) == 0);
+}
+
+/**
+ *  Sets the focus on the IDCANCEL button and designates it as the default button for a dialog window.
+ *  This function ensures that the IDCANCEL button receives the default push button style,
+ *  making it respond to the Enter key as the default action.
+ */
+void SetCancelBtnAsDefault(HWND hwndDlg)
+{
+	// Set the focus on the IDCANCEL button.
+	// For this purpose, the dialogue is told that IDCANCEL is the default button.
+	// In addition, the OK button should initially be given the style BS_PUSHBUTTON.
+	SendDlgItemMessage(hwndDlg, IDOK, BM_SETSTYLE, BS_PUSHBUTTON, (LONG)TRUE);
+	SendMessage(hwndDlg, DM_SETDEFID, IDCANCEL, 0L);
+
+	// IDCANCEL itself must also be informed of this.
+	SendDlgItemMessage(hwndDlg, IDCANCEL, BM_SETSTYLE, BS_DEFPUSHBUTTON, (LONG)TRUE);		
+
+	// Only then can the focus be successfully set on IDCANCEL.
+	SetFocus(GetDlgItem(hwndDlg, IDCANCEL));
 }
