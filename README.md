@@ -12,7 +12,7 @@
 The WinPE UI application "Cleanup" provides the ability to easily wipe the primary hard disk before a Microsoft Deployment Toolkit (MDT) based Lite Touch installation begins, i.e. before the LTI Wizard starts.
 
 <p align="center" width="100%">
-<img alt="Cleanup-Social-Media-Logo" src="https://user-images.githubusercontent.com/14788832/214246135-8980f5c5-ad8e-4183-8ba3-43438a333afd.png" width="100%" height="100%" />
+    <img alt="Cleanup-Social-Media-Logo" src="https://user-images.githubusercontent.com/14788832/214246135-8980f5c5-ad8e-4183-8ba3-43438a333afd.png" width="100%" height="100%" />
 </p>
 
 Cleanup is a Win32 application created in (Microsoft) C and Visual Studio 2010. Of course, you can also compile the project using a newer version of Visual Studio, such as 2019, or you can use an already compiled release version.
