@@ -17,7 +17,7 @@ The WinPE UI application "Cleanup" provides the ability to easily wipe the prima
 
 Cleanup is a Win32 application created in (Microsoft) C and Visual Studio 2010. Of course, you can also compile the project using a newer version of Visual Studio, such as 2019, or you can use an already compiled release version.
 
-Cleanup can also be used in **offline** installations as well as in **PXE-based** installations. This versatility allows it to integrate seamlessly into different deployment scenarios and ensures that disk cleanup tasks can be performed efficiently regardless of the deployment method used.
+Cleanup can be used for **offline** installations, such as deployment without using services like WDS (Windows Deployment Services), as well as for **PXE-based** installations (WDS-based). This versatility allows it to integrate seamlessly into different deployment scenarios and ensures that disk cleanup tasks can be performed efficiently regardless of the deployment method used.
 
 ## The origin of my problem
 I noticed in an MDT project to deploy an offline based Windows 10 installation that it sometimes interrupted with an error.
