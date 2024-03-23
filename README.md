@@ -1,8 +1,8 @@
 # Cleanup
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE.md)
 [![Visual Studio](https://badgen.net/badge/icon/visualstudio?icon=visualstudio&label)](https://visualstudio.microsoft.com)
-[![GitHub issues](https://img.shields.io/github/issues/cregx/mdt-cleanup-harddrive-winpe)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/issues)
-[![GitHub closed issues](https://img.shields.io/github/issues-closed/cregx/mdt-cleanup-harddrive-winpe)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/issues?q=is%3Aissue+is%3Aclosed)
+[![GitHub issues](https://img.shields.io/github/issues/cregx/mdt-cleanup-harddrive-winpe?color=ff0000)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/issues)
+[![GitHub closed issues](https://img.shields.io/github/issues-closed/cregx/mdt-cleanup-harddrive-winpe?color=A1C347)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/issues?q=is%3Aissue+is%3Aclosed)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/cregx/mdt-cleanup-harddrive-winpe)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/releases)
 [![Commits since release](https://img.shields.io/github/commits-since/cregx/mdt-cleanup-harddrive-winpe/latest/main)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/commits/main)
 [![GitHub stars](https://img.shields.io/github/stars/cregx/mdt-cleanup-harddrive-winpe)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/stargazers)
