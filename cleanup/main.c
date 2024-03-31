@@ -42,8 +42,9 @@
 #define MAX_LOADSTRING 512
 #define MAX_BUFFER_SIZE 1024
 #define ID_TIMER1 1
-#define MIN_LOGICAL_DRIVES 3		//Specifies the minimum number of logical drives required by the application to perform a cleanup operation.
-
+#define MIN_LOGICAL_DRIVES_PXE 2	// Specifies the minimum number of logical drives required by the application
+									// to perform a cleanup operation within a PXE-based installation.
+#define MIN_LOGICAL_DRIVES 3		// minimum number of logical drives required within a Non-PXE-based installation
 #include <Windows.h>
 #include <CommCtrl.h>
 #include <CommDlg.h>				// Dialogs
@@ -84,6 +85,7 @@ const TCHAR * GetActionPath(TCHAR *, TCHAR *);
 void Action(const TCHAR *, const TCHAR *, int);
 DWORD ActionEx(const TCHAR *, TCHAR *, ...);
 BOOL FileExists(const wchar_t *);
+BOOL DirExists(const TCHAR *);
 void ShowLogo(HWND);
 const TCHAR * GetLogicalDriveList(DWORD *);
 BOOL IsDiskCleaned(const TCHAR *, const TCHAR *);
@@ -111,26 +113,24 @@ WCHAR szBtnActionCaption[MAX_LOADSTRING];
 WCHAR szBtnCancelCaption[MAX_LOADSTRING];
 WCHAR szBtnCancelCaptionWithTimer[MAX_LOADSTRING];
 WCHAR szAppLang[MAX_LOADSTRING];
+WCHAR szGrpLogicalDrives[MAX_LOADSTRING];
 WCHAR szLogicalDrivesList[MAX_LOADSTRING];
 WCHAR szLogicalDrivesListIsEmpty[MAX_LOADSTRING];
 WCHAR szNotEnoughLogicalDrivesFound[MAX_LOADSTRING];
 WCHAR szNoteDiskAlreadyCleaned[MAX_LOADSTRING];
 WCHAR szCheckBoxRestartCaption[MAX_LOADSTRING];
+WCHAR szMissingInternalDrive[MAX_LOADSTRING];
 
 // Don't forget to increase the version number in the resource file (cleanup.rc).
-#ifdef NLS
-const LPCWSTR szAppVer		= TEXT("1.2.7 (%s) / 07. March 2024");
-#else
-const LPCWSTR szAppVer		= TEXT("1.2.7 (%s) / 07. March 2024");
-#endif
-
+const LPCWSTR szAppVer		= TEXT("1.2.9 (%s) / 31. March 2024");
 const LPCWSTR szBatchFileName	= TEXT("action.bat");
 const LPCWSTR szBatchParams	= TEXT("diskpart.txt");
 const LPCWSTR szRestartExe	= TEXT("wpeutil.exe");
 const LPCWSTR szRestartExeParams= TEXT("reboot");
 const LPCWSTR szDiskLetter = TEXT("C:\\");				// Drive letter of the primary disc, usually C:\.
 const LPCWSTR szDiskLabel = TEXT("cleaned");				// Temporary label of the primary disc (volume) after 'Cleanup' has cleaned the disk.
-									// See also in the diskpart.txt. 
+									// See also in the diskpart.txt.
+const LPCWSTR szPathDeployDir = TEXT("C:\\Deploy");
 INT g_iCounter = 30;							// Countdawn timer counter that uses the time (seconds) to automatically exit 'Cleanup'.
 BOOL g_bTimerIsCreated;							// Signals whether a timer has been created.
 
@@ -161,12 +161,14 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
 	LoadString(hInst, IDS_RUN_ACTION_FAILED_NLS, szActionFailed, MAX_LOADSTRING);
 	LoadString(hInst, IDS_RUN_ACTION_CANCELED_NLS, szActionCancelled, MAX_LOADSTRING);
 	LoadString(hInst, IDS_RUN_ACTION_FILE_NOT_FOUND_NLS, szActionFileNotFound, MAX_LOADSTRING);
+	LoadString(hInst, IDS_GRP_LOGICAL_DRIVES_NLS, szGrpLogicalDrives, MAX_LOADSTRING);
 	LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_NLS, szLogicalDrivesList, MAX_LOADSTRING);
 	LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_IS_EMPTY_NLS, szLogicalDrivesListIsEmpty, MAX_LOADSTRING);
 	LoadString(hInst, IDS_NOT_ENOUGH_LOGICAL_DRIVES_FOUND_NLS,szNotEnoughLogicalDrivesFound, MAX_LOADSTRING);
 	LoadString(hInst, IDS_BTN_CANCEL_CAPTION_WITH_TIMER_NLS, szBtnCancelCaptionWithTimer, MAX_LOADSTRING);
 	LoadString(hInst, IDS_APP_NOTE_DISK_ALREADY_CLEANED_NLS, szNoteDiskAlreadyCleaned, MAX_LOADSTRING);
-	LoadString(hInst, IDS_CB_RESTART_NLS, szCheckBoxRestartCaption, MAX_LOADSTRING); 
+	LoadString(hInst, IDS_CB_RESTART_NLS, szCheckBoxRestartCaption, MAX_LOADSTRING);
+	LoadString(hInst, IDS_INTERNAL_DRIVE_IS_MISSING_NLS, szMissingInternalDrive, MAX_LOADSTRING);
 	#else
 	LoadString(hInst, IDS_APP_LANG, szAppLang, MAX_LOADSTRING);
 	LoadString(hInst, IDS_BTN_ACTION_CAPTION, szBtnActionCaption, MAX_LOADSTRING);
@@ -180,12 +182,14 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
 	LoadString(hInst, IDS_RUN_ACTION_FAILED, szActionFailed, MAX_LOADSTRING);
 	LoadString(hInst, IDS_RUN_ACTION_CANCELED, szActionCancelled, MAX_LOADSTRING);
 	LoadString(hInst, IDS_RUN_ACTION_FILE_NOT_FOUND, szActionFileNotFound, MAX_LOADSTRING);
+	LoadString(hInst, IDS_GRP_LOGICAL_DRIVES, szGrpLogicalDrives, MAX_LOADSTRING);
 	LoadString(hInst, IDS_LOGICAL_DRIVES_LIST, szLogicalDrivesList, MAX_LOADSTRING);
 	LoadString(hInst, IDS_LOGICAL_DRIVES_LIST_IS_EMPTY, szLogicalDrivesListIsEmpty, MAX_LOADSTRING);
 	LoadString(hInst, IDS_NOT_ENOUGH_LOGICAL_DRIVES_FOUND,szNotEnoughLogicalDrivesFound, MAX_LOADSTRING);
 	LoadString(hInst, IDS_BTN_CANCEL_CAPTION_WITH_TIMER, szBtnCancelCaptionWithTimer, MAX_LOADSTRING);
 	LoadString(hInst, IDS_APP_NOTE_DISK_ALREADY_CLEANED, szNoteDiskAlreadyCleaned, MAX_LOADSTRING);
 	LoadString(hInst, IDS_CB_RESTART, szCheckBoxRestartCaption, MAX_LOADSTRING);
+	LoadString(hInst, IDS_INTERNAL_DRIVE_IS_MISSING, szMissingInternalDrive, MAX_LOADSTRING);
 	#endif
 
 	InitCommonControls();
@@ -338,16 +342,45 @@ void onInit(HWND hwndDlg, WPARAM wParam)
 	if (countLogicalDrives > 0)
 	{
 		_stprintf_s(szBuffer, MAX_BUFFER_SIZE, szLogicalDrivesList, szLogicalDrives);
-		// Fix: #5
-		if (countLogicalDrives <= 2)
+		// Fix: #5, #6
+		if (countLogicalDrives <= 1)
 		{
-			// Too few logical drives were detected (see under MIN_LOGICAL_DRIVES). Check the physical presence of the drives!
-			EnableWindow(GetDlgItem(hwndDlg, IDC_BUTTON_CLEANUP), FALSE);
-			_stprintf_s(szNotes, MAX_BUFFER_SIZE, szNotEnoughLogicalDrivesFound, countLogicalDrives, MIN_LOGICAL_DRIVES);
+			_stprintf_s(szNotes, MAX_BUFFER_SIZE, szNotEnoughLogicalDrivesFound, countLogicalDrives, MIN_LOGICAL_DRIVES_PXE, MIN_LOGICAL_DRIVES);
 			SetDlgItemText(hwndDlg, IDC_STATIC_CLEANUP_IMPORTANT_NOTES, szNotes);
 			ShowWindow(GetDlgItem(hwndDlg, IDC_STATIC_CLEANUP_IMPORTANT_NOTES), SW_SHOW);			
 			UpdateWindow(hwndDlg);
+			EnableWindow(GetDlgItem(hwndDlg, IDC_BUTTON_CLEANUP), FALSE);
 			SetCancelBtnAsDefault(hwndDlg);
+		}
+		else if (countLogicalDrives == MIN_LOGICAL_DRIVES_PXE)
+		{
+			/**
+			 * PXE-based or USB-/DVD-based deployment:
+			 *
+			 * Only a minimum of logical drives were detected (see under MIN_LOGICAL_DRIVES_PXE).
+			 * We now need to verify the presence of at least 1 internal hard drive.
+			 * This is to prevent accidental deletion of the USB drive during Non-PXE-based installations.
+			 * The check is performed in such a way that the USB drive is recognized as the first drive
+			 * if no internal hard drives are detected and the specific 'Deploy' directory exists on drive C:\.
+			 */
+
+			/**
+			 * Check if drive C:\ exists, or if it does, whether it contains the directory C:\Deploy,
+			 * as this would indicate that no internal logical hard drive is present during a non-PXE installation.
+			 */
+			if (DirExists(szDiskLetter) == FALSE || DirExists(szPathDeployDir) == TRUE)
+			{
+				/**
+				 * It appears that an internal hard drive is missing.
+				 * Therefore, the execution of a cleanup process by disabling the corresponding button is prevented.
+				 */
+				_stprintf_s(szNotes, MAX_BUFFER_SIZE, szMissingInternalDrive);
+				SetDlgItemText(hwndDlg, IDC_STATIC_CLEANUP_IMPORTANT_NOTES, szNotes);
+				ShowWindow(GetDlgItem(hwndDlg, IDC_STATIC_CLEANUP_IMPORTANT_NOTES), SW_SHOW);			
+				UpdateWindow(hwndDlg);
+				EnableWindow(GetDlgItem(hwndDlg, IDC_BUTTON_CLEANUP), FALSE);
+				SetCancelBtnAsDefault(hwndDlg);
+			}
 		}
 	}
 	else
@@ -392,6 +425,7 @@ void onInit(HWND hwndDlg, WPARAM wParam)
 	SetWindowText(hwndDlg, szAppDialogTitle);
 	SetDlgItemText(hwndDlg, IDC_STATIC_REQUEST, szAppActionRequest);
 	SetDlgItemText(hwndDlg, IDC_STATIC_EXPLANATION, szAppActionExpl);
+	SetDlgItemText(hwndDlg, IDC_STATIC_GROUP_LOGICAL_DRIVES, szGrpLogicalDrives);
 	SetDlgItemText(hwndDlg, IDC_BUTTON_CLEANUP, szBtnActionCaption);
 	SetDlgItemText(hwndDlg, IDCANCEL, szBtnCancelCaption);
 	SetDlgItemText(hwndDlg, IDC_CHECKBOX_RESTART, szCheckBoxRestartCaption);
@@ -660,6 +694,24 @@ BOOL FileExists(const wchar_t * szFile)
 }
 
 /**
+ * Checks if a directory exists and returns TRUE in this case else FALSE.
+ * Source: https://docs.microsoft.com/de-de/cpp/c-runtime-library/reference/access-s-waccess-s?view=msvc-160
+ */
+BOOL DirExists(const TCHAR * szDir)
+{
+	DWORD attributes = 0;
+	BOOL isDirectory = FALSE;
+	attributes = GetFileAttributes(szDir);
+
+	if (attributes == INVALID_FILE_ATTRIBUTES)
+	{
+		return FALSE;
+	}
+	isDirectory = ((attributes & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY);
+	return isDirectory;
+}
+
+/**
  * Creates a window to display a logo loaded from the resource file.
  */
 void ShowLogo(HWND hwndDlg)
@@ -670,7 +722,7 @@ void ShowLogo(HWND hwndDlg)
 	int windowWidth = 0;
 	int windowHeight = 0;
 	int xPos = 10;
-	int yPos = imgHeight / 2;
+	int yPos = imgHeight / 2 - 3;
 
 	// Get the size of the dialog window.
 	if (GetWindowRect(hwndDlg, &rect) != 0)
