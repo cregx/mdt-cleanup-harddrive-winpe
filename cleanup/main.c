@@ -695,7 +695,6 @@ BOOL FileExists(const wchar_t * szFile)
 
 /**
  * Checks if a directory exists and returns TRUE in this case else FALSE.
- * Source: https://docs.microsoft.com/de-de/cpp/c-runtime-library/reference/access-s-waccess-s?view=msvc-160
  */
 BOOL DirExists(const TCHAR * szDir)
 {
