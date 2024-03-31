@@ -48,7 +48,7 @@ I found out that you can run a simple Visual Basic script with this task before 
 
 However, since I wanted to make the script a little more pleasant (nicer :blush:), I had to come up with a GUI-based solution: **Cleanup**.
 <p align="center" width="100%">
-    <img alt="UI-Cleanup-v.1.2.7" src="https://github.com/cregx/mdt-cleanup-harddrive-winpe/assets/14788832/3a6d4986-d17c-49f7-863f-754664bb0999" width="50%" height="50%" />
+    <img alt="UI-Cleanup-v.1.2.9" src="https://github.com/cregx/mdt-cleanup-harddrive-winpe/assets/14788832/802be65a-38aa-4678-8907-2cb5e7896d00" width="50%" height="50%" />
 </p>
 
 #### Components of the solution
