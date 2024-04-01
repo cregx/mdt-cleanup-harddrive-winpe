@@ -122,8 +122,13 @@ WCHAR szCheckBoxRestartCaption[MAX_LOADSTRING];
 WCHAR szMissingInternalDrive[MAX_LOADSTRING];
 
 // Don't forget to increase the version number in the resource file (cleanup.rc).
-const LPCWSTR szAppVer		= TEXT("1.2.9 (%s) / 31. March 2024");
-const LPCWSTR szBatchFileName	= TEXT("action.bat");
+#ifdef NLS
+const LPCWSTR szAppVer = TEXT("1.2.9 (%s) / 1. April 2024");
+#else
+const LPCWSTR szAppVer = TEXT("1.2.9 (%s) / 1 April 2024");
+#endif
+
+const LPCWSTR szBatchFileName = TEXT("action.bat");
 const LPCWSTR szBatchParams	= TEXT("diskpart.txt");
 const LPCWSTR szRestartExe	= TEXT("wpeutil.exe");
 const LPCWSTR szRestartExeParams= TEXT("reboot");
@@ -134,9 +139,9 @@ const LPCWSTR szPathDeployDir = TEXT("C:\\Deploy");
 INT g_iCounter = 30;							// Countdawn timer counter that uses the time (seconds) to automatically exit 'Cleanup'.
 BOOL g_bTimerIsCreated;							// Signals whether a timer has been created.
 
-const DWORD RUN_ACTION_SHELLEX_FAILED	= 0xFFFFFFFFFFFFFFFF;		// dec => -1 (Function internal error, use GetLastError().)
+const DWORD RUN_ACTION_SHELLEX_FAILED = 0xFFFFFFFFFFFFFFFF;		// dec => -1 (Function internal error, use GetLastError().)
 const DWORD RUN_ACTION_SHELLEX_FILE_NOT_FOUND = 0xFFFFFFFFFFFFFFFE;	// dec => -2 (Action file not found.)
-const DWORD RUN_ACTION_SUCCESSFUL	= 0x400;			// dec => 1024 (Successful processing of the batch file.)
+const DWORD RUN_ACTION_SUCCESSFUL = 0x400;			// dec => 1024 (Successful processing of the batch file.)
 const DWORD RUN_ACTION_CANCELLED_BY_USER= 0xC000013A;			// dec => 3221225786
 									// (Cancellation of the batch job by the user,
 									// e.g. because the user has clicked the X button.)
