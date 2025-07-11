@@ -12,7 +12,7 @@
 The WinPE UI application "Cleanup" provides the ability to easily wipe the primary hard disk before a Microsoft Deployment Toolkit (MDT) based Lite Touch installation begins, i.e. before the LTI Wizard starts.
 
 <p align="center" width="100%">
-    <img alt="Cleanup-Social-Media-Logo" src="https://user-images.githubusercontent.com/14788832/214246135-8980f5c5-ad8e-4183-8ba3-43438a333afd.png" width="100%" height="100%" />
+    <img alt="Cleanup-Social-Media-Logo" src="https://user-images.githubusercontent.com/14788832/214246135-8980f5c5-ad8e-4183-8ba3-43438a333afd.png" width="100%" />
 </p>
 
 Cleanup is a Win32 application created in (Microsoft) C and Visual Studio 2010. Of course, you can also compile the project using a newer version of Visual Studio, such as 2019, or you can use an already compiled release version.
@@ -48,7 +48,7 @@ I found out that you can run a simple Visual Basic script with this task before 
 
 However, since I wanted to make the script a little more pleasant (nicer :blush:), I had to come up with a GUI-based solution: **Cleanup**.
 <p align="center" width="100%">
-    <img alt="UI-Cleanup-v.1.2.9-non-pxe-c-normal-state" src="https://github.com/cregx/mdt-cleanup-harddrive-winpe/assets/14788832/5f66c16a-18de-44e5-b49f-c93b7f333175" width="50%" height="50%" />
+    <img alt="UI-Cleanup-v.1.2.9-non-pxe-c-normal-state" src="https://github.com/cregx/mdt-cleanup-harddrive-winpe/assets/14788832/5f66c16a-18de-44e5-b49f-c93b7f333175" width="50%" />
 </p>
 
 #### Components of the solution
@@ -99,7 +99,7 @@ The solution consists of the following three components:
 ```
 4. Change the properties of DeploymentShare as shown below. Alternative: If you are using an offline media instead, do it there (MDT Deployment Share \ Advanced Configuration \ Media \ (e.g. MEDIA001).
 <p align="center" width="100%">
-<img alt="MDT DeploymentShare Properties WinPE" src="https://user-images.githubusercontent.com/14788832/170854434-abb896b6-2593-4192-912b-b2a8e3993811.png" width="50%" height="50%" />
+<img alt="MDT DeploymentShare Properties WinPE" src="https://user-images.githubusercontent.com/14788832/170854434-abb896b6-2593-4192-912b-b2a8e3993811.png" width="50%" />
 </p>
 
 5. Create a new medium and boot from it.
@@ -107,7 +107,7 @@ The solution consists of the following three components:
 6. The result in action: After integrating Cleanup into your own MDT solution, the result should look like the animation shown below. Have fun and success with it. :wink:
 
 <p align="center" width="100%">
-<img alt="MDT Cleanup Harddrive Animation" src="https://user-images.githubusercontent.com/14788832/172863867-bee55c1a-6be9-49ec-a8ce-16b7222bfcc5.gif" width="75%" height="75%" />
+<img alt="MDT Cleanup Harddrive Animation" src="https://user-images.githubusercontent.com/14788832/172863867-bee55c1a-6be9-49ec-a8ce-16b7222bfcc5.gif" width="75%" />
 </p>
 
 ## FAQ
