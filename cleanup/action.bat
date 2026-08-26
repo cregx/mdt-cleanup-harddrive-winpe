@@ -1,9 +1,9 @@
 @echo off
 REM
 REM Common description:
-REM  This script is used to clean the (primary) hard disk with Diskpart.
-REM  Version 1.0 (Revision 1)
-REM  Author: Christoph Regner (Mai 2022)
+REM  This script is used to clean the hard disk with Diskpart.
+REM  Version 1.1 (Revision 1)
+REM  Author: Christoph Regner (June 2026)
 REM
 REM Parameter description:
 REM  Used parameter: %1

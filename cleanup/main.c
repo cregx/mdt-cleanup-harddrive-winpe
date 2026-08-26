@@ -4,7 +4,7 @@
  * For further information, please refer to the attached LICENSE.md
  * 
  * The MIT License (MIT)
- * Copyright (c) 2024 Christoph Regner
+ * Copyright (c) 2024-2026 Christoph Regner
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,14 +37,28 @@
  * of a Lite Touch installation (WinPE / MDT). Build with Visual Studio 2010.
  **/
 #define WIN32_LEAN_AND_MEAN
-#define _WIN32_WINNT 0x400
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0601
 #define _Win32_DCOM
 #define MAX_LOADSTRING 512
 #define MAX_BUFFER_SIZE 1024
+#define MAX_DISKS 10
 #define ID_TIMER1 1
 #define MIN_LOGICAL_DRIVES_PXE 2	// Specifies the minimum number of logical drives required by the application
 									// to perform a cleanup operation within a PXE-based installation.
 #define MIN_LOGICAL_DRIVES 3		// minimum number of logical drives required within a Non-PXE-based installation
+
+// Define missing Storage Bus Types.
+#if !defined(BusTypeSpaces)
+	#define BusTypeSpaces (STORAGE_BUS_TYPE)0x10
+#endif
+#if !defined(BusTypeNvme)
+	#define BusTypeNvme (STORAGE_BUS_TYPE)0x11
+#endif
+#if !defined(BusTypeScm)
+	#define BusTypeScm (STORAGE_BUS_TYPE)0x12
+#endif
+
 #include <Windows.h>
 #include <CommCtrl.h>
 #include <CommDlg.h>				// Dialogs
@@ -53,6 +67,8 @@
 #include <strsafe.h>				// e.g. Safe string copy
 #include <ShellAPI.h>				// e.g. SHELLEXECUTEINFO
 #include <io.h>					// e.g. _access_s (file exists)
+#include <winioctl.h>				// e.g. STORAGE_PROPERTY_QUERY
+#include <stddef.h>					// e.g. offsetof
 
 #include <Shobjidl.h>				// COM objects
 #include <Objbase.h>
@@ -74,6 +90,18 @@
 #pragma comment(lib, "propsys.lib")
 
 typedef enum { TERMINATE, CLEANUP } action_type;	// 0 for exit, 1 for cleanup.
+typedef struct _DiskInfo {
+	int diskIndex;
+	ULONGLONG totalBytes;
+	TCHAR totalGB[32];
+	TCHAR model[256];
+	TCHAR busType[64];
+	TCHAR serialNumber[256];
+	BOOL isRemovable;
+	BOOL isSSD;
+	BOOL isPhysicalDisk;
+	BOOL isCleaned;
+} DiskInfo;
 
 INT_PTR CALLBACK DialogProc(HWND, UINT, WPARAM, LPARAM);
 void onAction(HWND, action_type);
@@ -90,13 +118,19 @@ void ShowLogo(HWND);
 const TCHAR * GetLogicalDriveList(DWORD *);
 BOOL IsDiskCleaned(const TCHAR *, const TCHAR *);
 void SetCancelBtnAsDefault(HWND);
+int GetPhysicalDisks(void);
+LPCTSTR GetBusTypeName(STORAGE_BUS_TYPE);
+BOOL GetPhysicalDiskInfo(int, DiskInfo *);
+void TrimTrailingSpaces(TCHAR *);
+void InitComboBox_PhysicalDisks(HWND, HWND);
+BOOL CreateDiskpartFile(int);
 
 static HBITMAP hBitmapLogo;
 static HWND hwndLogo;
 
 const TCHAR * g_pstrExePath;				// Full path to the exe
 const TCHAR * g_pstrActionPath;				// Full path to the batch file
-const TCHAR * g_pstrActionInstPath;			// Full path to the file with instructions for the batch file
+const TCHAR * g_pstrActionInstPath;			// Full path to the file with instructions (diskpart.txt) for the batch file
 action_type g_currentAction;				// Cleanup or terminate action should be performed?
 
 WCHAR szAppDialogTitle[MAX_LOADSTRING];
@@ -107,6 +141,7 @@ WCHAR szRunActionText[MAX_LOADSTRING];
 WCHAR szActionWarning[MAX_LOADSTRING];
 WCHAR szActionSuccessful[MAX_LOADSTRING];
 WCHAR szActionFailed[MAX_LOADSTRING];
+WCHAR szActionDiskSelectionFailed[MAX_LOADSTRING];
 WCHAR szActionCancelled[MAX_LOADSTRING];
 WCHAR szActionFileNotFound[MAX_LOADSTRING];
 WCHAR szBtnActionCaption[MAX_LOADSTRING];
@@ -120,12 +155,14 @@ WCHAR szNotEnoughLogicalDrivesFound[MAX_LOADSTRING];
 WCHAR szNoteDiskAlreadyCleaned[MAX_LOADSTRING];
 WCHAR szCheckBoxRestartCaption[MAX_LOADSTRING];
 WCHAR szMissingInternalDrive[MAX_LOADSTRING];
+WCHAR szGrpPhysicalDrives[MAX_LOADSTRING];
+WCHAR szPhysicalDrivesList[MAX_LOADSTRING];
 
 // Don't forget to increase the version number in the resource file (cleanup.rc).
 #ifdef NLS
-const LPCWSTR szAppVer = TEXT("1.2.9 (%s) / 1. April 2024");
+const LPCWSTR szAppVer = TEXT("1.4.1 (%s) / 26. Juni 2026");
 #else
-const LPCWSTR szAppVer = TEXT("1.2.9 (%s) / 1 April 2024");
+const LPCWSTR szAppVer = TEXT("1.4.1 (%s) / 26 June 2026");
 #endif
 
 const LPCWSTR szBatchFileName = TEXT("action.bat");
@@ -143,6 +180,7 @@ const DWORD RUN_ACTION_SHELLEX_FAILED = 0xFFFFFFFFFFFFFFFF;		// dec => -1 (Funct
 const DWORD RUN_ACTION_SHELLEX_FILE_NOT_FOUND = 0xFFFFFFFFFFFFFFFE;	// dec => -2 (Action file not found.)
 const DWORD RUN_ACTION_SUCCESSFUL = 0x400;			// dec => 1024 (Successful processing of the batch file.)
 const DWORD RUN_ACTION_CANCELLED_BY_USER= 0xC000013A;			// dec => 3221225786
+const DWORD RUN_ACTION_CREATE_DISKPART_FILE_FAILED = 0xFFFFFFFFFFFFFFFC; // dec => -4 (Action diskpart file could not be created)
 									// (Cancellation of the batch job by the user,
 									// e.g. because the user has clicked the X button.)
 
@@ -164,6 +202,7 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
 	LoadString(hInst, IDS_RUN_ACTION_TITLE_NLS, szRunActionText, MAX_LOADSTRING);
 	LoadString(hInst, IDS_RUN_ACTION_WARNING_NLS, szActionWarning, MAX_LOADSTRING);
 	LoadString(hInst, IDS_RUN_ACTION_FAILED_NLS, szActionFailed, MAX_LOADSTRING);
+	LoadString(hInst, IDS_RUN_ACTION_DISK_SELECTION_FAILED_NLS, szActionDiskSelectionFailed, MAX_LOADSTRING);
 	LoadString(hInst, IDS_RUN_ACTION_CANCELED_NLS, szActionCancelled, MAX_LOADSTRING);
 	LoadString(hInst, IDS_RUN_ACTION_FILE_NOT_FOUND_NLS, szActionFileNotFound, MAX_LOADSTRING);
 	LoadString(hInst, IDS_GRP_LOGICAL_DRIVES_NLS, szGrpLogicalDrives, MAX_LOADSTRING);
@@ -174,6 +213,8 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
 	LoadString(hInst, IDS_APP_NOTE_DISK_ALREADY_CLEANED_NLS, szNoteDiskAlreadyCleaned, MAX_LOADSTRING);
 	LoadString(hInst, IDS_CB_RESTART_NLS, szCheckBoxRestartCaption, MAX_LOADSTRING);
 	LoadString(hInst, IDS_INTERNAL_DRIVE_IS_MISSING_NLS, szMissingInternalDrive, MAX_LOADSTRING);
+	LoadString(hInst, IDS_GRP_PHYSICAL_DRIVES_NLS, szGrpPhysicalDrives, MAX_LOADSTRING);
+	LoadString(hInst, IDS_PHYSICAL_DRIVES_LIST_NLS, szPhysicalDrivesList, MAX_LOADSTRING);
 	#else
 	LoadString(hInst, IDS_APP_LANG, szAppLang, MAX_LOADSTRING);
 	LoadString(hInst, IDS_BTN_ACTION_CAPTION, szBtnActionCaption, MAX_LOADSTRING);
@@ -185,6 +226,7 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
 	LoadString(hInst, IDS_RUN_ACTION_TITLE, szRunActionText, MAX_LOADSTRING);
 	LoadString(hInst, IDS_RUN_ACTION_WARNING, szActionWarning, MAX_LOADSTRING);
 	LoadString(hInst, IDS_RUN_ACTION_FAILED, szActionFailed, MAX_LOADSTRING);
+	LoadString(hInst, IDS_RUN_ACTION_DISK_SELECTION_FAILED, szActionDiskSelectionFailed, MAX_LOADSTRING);
 	LoadString(hInst, IDS_RUN_ACTION_CANCELED, szActionCancelled, MAX_LOADSTRING);
 	LoadString(hInst, IDS_RUN_ACTION_FILE_NOT_FOUND, szActionFileNotFound, MAX_LOADSTRING);
 	LoadString(hInst, IDS_GRP_LOGICAL_DRIVES, szGrpLogicalDrives, MAX_LOADSTRING);
@@ -195,6 +237,8 @@ int WINAPI _tWinMain(HINSTANCE hInst, HINSTANCE h0, LPTSTR lpCmdLine, int nCmdSh
 	LoadString(hInst, IDS_APP_NOTE_DISK_ALREADY_CLEANED, szNoteDiskAlreadyCleaned, MAX_LOADSTRING);
 	LoadString(hInst, IDS_CB_RESTART, szCheckBoxRestartCaption, MAX_LOADSTRING);
 	LoadString(hInst, IDS_INTERNAL_DRIVE_IS_MISSING, szMissingInternalDrive, MAX_LOADSTRING);
+	LoadString(hInst, IDS_GRP_PHYSICAL_DRIVES, szGrpPhysicalDrives, MAX_LOADSTRING);
+	LoadString(hInst, IDS_PHYSICAL_DRIVES_LIST, szPhysicalDrivesList, MAX_LOADSTRING);
 	#endif
 
 	InitCommonControls();
@@ -341,9 +385,12 @@ void onInit(HWND hwndDlg, WPARAM wParam)
 
 	g_currentAction = CLEANUP;
 
-	// Gets the list of all logical drives in the system. 
+	// Get the list of all logical drives in the system. 
 	szLogicalDrives = GetLogicalDriveList(&countLogicalDrives);
-
+	
+	// Get the list of all physical disks in the systemn.
+	InitComboBox_PhysicalDisks(hwndDlg, GetDlgItem(hwndDlg, IDC_COMBO_PHYSICAL_DISKS));
+	
 	if (countLogicalDrives > 0)
 	{
 		_stprintf_s(szBuffer, MAX_BUFFER_SIZE, szLogicalDrivesList, szLogicalDrives);
@@ -416,14 +463,14 @@ void onInit(HWND hwndDlg, WPARAM wParam)
 		// For more information, see under: https://learn.microsoft.com/en-us/windows/win32/winmsg/using-timers
 		g_bTimerIsCreated = (BOOL)SetTimer(hwndDlg, ID_TIMER1, 1000, (TIMERPROC) NULL);
 	}
-
+	
 	// Get the module path.
 	g_pstrExePath = GetOwnPath();
-
-	// Get the batch file path.
+	
+	// Get the batch file path (action.bat).
 	g_pstrActionPath = GetActionPath((TCHAR *)g_pstrExePath, (TCHAR *)szBatchFileName);
 
-	// Get the full file path for the batch instructions file.
+	// Get the full file path for the batch instructions file (diskpart.txt).
 	g_pstrActionInstPath = GetActionPath((TCHAR *)g_pstrExePath, (TCHAR *)szBatchParams);
 	
 	// Init controls.
@@ -434,6 +481,8 @@ void onInit(HWND hwndDlg, WPARAM wParam)
 	SetDlgItemText(hwndDlg, IDC_BUTTON_CLEANUP, szBtnActionCaption);
 	SetDlgItemText(hwndDlg, IDCANCEL, szBtnCancelCaption);
 	SetDlgItemText(hwndDlg, IDC_CHECKBOX_RESTART, szCheckBoxRestartCaption);
+	SetDlgItemText(hwndDlg, IDC_STATIC_GROUP_PHYSICAL_DRIVES, szGrpPhysicalDrives);
+	SetDlgItemText(hwndDlg, IDC_STATIC_PHYSICAL_DRIVES, szPhysicalDrivesList);
 
 	// Initialization of the restart option checkbox (checked).
 	SendMessage(GetDlgItem(hwndDlg, IDC_CHECKBOX_RESTART), BM_SETCHECK, 1, 0L);
@@ -467,6 +516,8 @@ void onAction(HWND hDlg, action_type action)
 	TCHAR szBuffer[MAX_BUFFER_SIZE];
 	DWORD rcRunAction = 0;
 	BOOL bSystemRestart = FALSE;
+	int cbPosition = 0;
+	int selectedDiskIndex = -1;
 
 	memset(szBuffer, 0, sizeof(szBuffer));
 
@@ -482,8 +533,37 @@ void onAction(HWND hDlg, action_type action)
 	// Cleanup action.
 	if (action == CLEANUP)
 	{
-		if (MessageBox(hDlg, szActionWarning, szRunActionText, MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2) == IDYES)
+
+		// Create the diskpart.txt based on the selected item in IDC_COMBO_PHYSICAL_DISKS.
+		// Get the current selection in the combo box.
+		cbPosition = (int)SendMessage(GetDlgItem(hDlg, IDC_COMBO_PHYSICAL_DISKS), CB_GETCURSEL, 0, 0);
+
+		// Check if user has selected a disk.
+		if (cbPosition != CB_ERR)
 		{
+			// Get the number of the selected disk.
+			selectedDiskIndex = (int)SendMessage(GetDlgItem(hDlg, IDC_COMBO_PHYSICAL_DISKS), CB_GETITEMDATA, cbPosition, 0);
+			
+			// Create the diskpart file.
+			if (CreateDiskpartFile(selectedDiskIndex) == FALSE)
+			{
+				// Failed
+				_stprintf_s(szBuffer, MAX_BUFFER_SIZE, szActionFailed, RUN_ACTION_CREATE_DISKPART_FILE_FAILED);
+				MessageBox(hDlg, szBuffer, szRunActionText, MB_ICONERROR | MB_OK);
+				return;
+			}
+		}
+		else 
+		{
+			// Nothing has been selected (-1).
+			_stprintf_s(szBuffer, MAX_BUFFER_SIZE, szActionDiskSelectionFailed, rcRunAction);
+			MessageBox(hDlg, szBuffer, szRunActionText, MB_ICONINFORMATION | MB_OK);
+			return;
+		}
+
+		// Ask the user if the action should be started.
+		if (MessageBox(hDlg, szActionWarning, szRunActionText, MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2) == IDYES)
+		{			
 			// Run action and wait until the task is finished.
 			rcRunAction = ActionEx(g_pstrActionPath, TEXT("%s"), g_pstrActionInstPath);
 
@@ -855,4 +935,299 @@ void SetCancelBtnAsDefault(HWND hwndDlg)
 
 	// Only then can the focus be successfully set on IDCANCEL.
 	SetFocus(GetDlgItem(hwndDlg, IDCANCEL));
+}
+
+/**
+ * Enumerates all physical disks present in the system and initializes the combo box
+ * with their corresponding information.
+ */
+void InitComboBox_PhysicalDisks(HWND hwndDlg, HWND hwndComboBox)
+{
+	TCHAR buffer[256];
+	int disk = 0;
+	int cbPosition = 0;
+	BOOL anyDiskCleaned = FALSE;
+	int cleanedDiskIndex = -1;
+	DiskInfo info[MAX_DISKS];
+
+	memset(info, 0, sizeof(info));
+
+	for (disk; disk < MAX_DISKS; disk++)
+	{
+		info[disk].diskIndex = disk;
+		if (GetPhysicalDiskInfo(disk, &info[disk]) == FALSE)
+		{
+			break;
+		}
+		else
+		{
+			// Check if the volume label starts with "cleaned" (matches first 7 characters).
+			// _tcsncmp returns 0 if the specified number of characters match exactly
+			// if (_tcsncmp(info[disk].volumeLabel, _T(szDiskLabel), 7) == 0)
+			// {
+			//	info[disk].isCleaned = TRUE;
+			//	anyDiskCleaned = TRUE;
+			//	cleanedDiskIndex = info[disk].diskIndex;
+			// }
+			// else
+			// {
+			//	info[disk].isCleaned = FALSE;
+			// }
+
+			_sntprintf_s(buffer, _countof(buffer), _TRUNCATE,
+						_T("Disk: %d => %s (%s, %s GB)"),
+						info[disk].diskIndex,
+						info[disk].model[0] == _T('\0') ? _T("n/a") : info[disk].model,
+						info[disk].busType,
+						info[disk].totalGB);
+			cbPosition = (int)SendMessage(hwndComboBox, CB_ADDSTRING, 0, (LPARAM)buffer);
+			// Save the selected disk value 0, 1 etc. in the combobox item tag.
+			SendMessage(hwndComboBox, CB_SETITEMDATA, cbPosition, (LPARAM)info[disk].diskIndex);
+		}	
+	}
+
+
+
+
+
+
+}
+
+/**
+ * Extends GetPhysicalDiskInfo by retrieving additional information from the
+ * specified physical disk, such as whether the disk is an SSD.
+ */
+void GetPhysicalDiskInfoEx(HANDLE hDevice, DiskInfo* info)
+{
+	DWORD bytesReturned = 0;
+	DEVICE_SEEK_PENALTY_DESCRIPTOR desc = {0};
+	
+	STORAGE_PROPERTY_QUERY query;
+	query.PropertyId = StorageDeviceSeekPenaltyProperty;
+	query.QueryType = PropertyStandardQuery;
+
+	// Is SSD?
+	if (DeviceIoControl(hDevice, IOCTL_STORAGE_QUERY_PROPERTY, &query, sizeof(query), &desc, sizeof(desc), &bytesReturned, NULL))
+	{
+		info->isSSD = (desc.IncursSeekPenalty == FALSE);
+	}
+}
+
+/**
+ * Determines whether a physical disk exists in the system using the
+ * \\.\PhysicalDrive%d syntax. If the disk exists, retrieves information such as
+ * disk size, manufacturer, and bus type and stores it in the DiskInfo structure.
+ *
+ * Returns TRUE if the physical disk exists and the information was retrieved
+ * successfully; otherwise, returns FALSE.
+ */
+BOOL GetPhysicalDiskInfo(int diskIndex, DiskInfo* pInfo)
+{
+	TCHAR path[64];
+	HANDLE hDevice = NULL;
+	STORAGE_PROPERTY_QUERY query;
+	BYTE buffer[4096];
+	DWORD bytesReturned = 0;
+	PSTORAGE_DEVICE_DESCRIPTOR pDesc;
+	const TCHAR* busTypes[] = { _T("Unknown"), _T("SCSI"), _T("ATAPI"), _T("ATA"), _T("IEEE1394"), _T("SSA"), _T("Fibre"), _T("USB"), _T("RAID"), _T("iSCSI"), _T("SAS"), _T("SATA"), _T("SD"), _T("MMC"), _T("Virtual"), _T("FileBackedVirtual"), _T("NVMe") };
+	DISK_GEOMETRY_EX diskGeometry;
+	ULONGLONG diskSizeBytes = 0;
+	ULONGLONG diskSizeGB = 0;
+	BOOL isRealDisk = TRUE;
+	
+	// Build the full path for the physical drive and verify that it exists.
+	_stprintf_s(path, _countof(path), TEXT("\\\\.\\PhysicalDrive%d"), diskIndex);
+
+	// Read device information without requiring elevated privileges.
+	hDevice = CreateFile(path, 0, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+
+	if (hDevice == INVALID_HANDLE_VALUE)
+		return FALSE;
+	
+	pInfo->isPhysicalDisk = TRUE;
+
+	// Get the disk size in bytes (64-bit unsigned integer), and also as a string in gigabytes.
+	if (DeviceIoControl(hDevice, IOCTL_DISK_GET_DRIVE_GEOMETRY_EX, NULL, 0, &diskGeometry, sizeof(diskGeometry), &bytesReturned, NULL))
+	{
+		// Bytes
+		pInfo->totalBytes = diskGeometry.DiskSize.QuadPart;
+
+		// Gigabytes
+		_sntprintf_s(pInfo->totalGB, _countof(pInfo->totalGB), _TRUNCATE, TEXT("%.2f"), (double)diskGeometry.DiskSize.QuadPart / (1024.0 * 1024.0 * 1024.0));
+	}
+		
+	// Obtain the device model, bus type, and removable status through IOCTL_STORAGE_QUERY_PROPERTY.
+	ZeroMemory(&query, sizeof(query));
+	query.PropertyId = StorageDeviceProperty;
+	query.QueryType = PropertyStandardQuery;
+	ZeroMemory(buffer, sizeof(buffer));
+
+	if (DeviceIoControl(hDevice, IOCTL_STORAGE_QUERY_PROPERTY, &query, sizeof(query), buffer, sizeof(buffer), &bytesReturned, NULL)) 
+	{
+		pDesc = (PSTORAGE_DEVICE_DESCRIPTOR)buffer;
+			
+		// Retrieve  the model name.
+		if (pDesc->ProductIdOffset != 0) 
+		{
+			// Copy a char* string to a TCHAR* string and convert it. Important: use %S when converting from ANSI to Unicode.
+			_sntprintf_s(pInfo->model, _countof(pInfo->model), _TRUNCATE, TEXT("%S"), (char*)(buffer + pDesc->ProductIdOffset));
+			
+			// Trim trailing spaces, tabs, and carriage returns.
+			TrimTrailingSpaces(pInfo->model);
+		}
+
+		// Retrieve  the serial number.
+		// Some device controllers return 0 or -1 if a serial number is not available.
+		if (pDesc->SerialNumberOffset != 0 && pDesc->SerialNumberOffset != -1)
+		{
+			// Copy a char* string to a TCHAR* string and convert it. Important: use %S when converting from ANSI to Unicode.
+			_sntprintf_s(pInfo->serialNumber, _countof(pInfo->serialNumber), _TRUNCATE, TEXT("%S"), (char*)(buffer + pDesc->SerialNumberOffset));
+
+			// Trim trailing spaces, tabs, and carriage returns.
+			TrimTrailingSpaces(pInfo->serialNumber);
+		}
+		else
+		{
+			_tcscpy_s(pInfo->serialNumber, _countof(pInfo->serialNumber), TEXT("n/a"));
+		}
+
+		// Check if disk is an SSD.
+		GetPhysicalDiskInfoEx(hDevice, pInfo);
+
+		// Get the bus type.
+		_stprintf_s(pInfo->busType, _countof(pInfo->busType), TEXT("%s"), GetBusTypeName(pDesc->BusType));
+
+		// Retrieve  the removable status.
+		if (pDesc->RemovableMedia ||
+			pDesc->BusType == 0x07 ||	// USB
+			pDesc->BusType == 0x0C ||	// SD
+			pDesc->BusType == 0x0D )	// MMC, eMMC
+		{
+			pInfo->isRemovable = TRUE;
+		}
+		else
+		{
+			pInfo->isRemovable = FALSE;
+		}
+	}
+	CloseHandle(hDevice);
+	return TRUE;
+}
+
+/**
+ * Returns a human-readable string for the specified STORAGE_BUS_TYPE value,
+ * such as "NVme", "USB".
+ */
+LPCTSTR GetBusTypeName(STORAGE_BUS_TYPE busType)
+{
+	switch (busType)
+	{
+		case BusTypeUnknown:			return _T("Unknown");
+		case BusTypeScsi:				return _T("SCSI");
+		case BusTypeAtapi:				return _T("ATAPI");
+		case BusTypeAta:				return _T("ATA");
+		case BusType1394:				return _T("Firewire");
+		case BusTypeSsa:				return _T("SSA");
+		case BusTypeFibre:				return _T("Fibre");
+		case BusTypeUsb:				return _T("USB");
+		case BusTypeRAID:				return _T("RAID");
+		case BusTypeiScsi:				return _T("iSCSI");
+		case BusTypeSas:				return _T("SAS");
+		case BusTypeSata:				return _T("SATA");
+		case BusTypeSd:					return _T("SD");
+		case BusTypeMmc:				return _T("MMC");
+		case BusTypeVirtual:			return _T("Virtual");
+		case BusTypeFileBackedVirtual:	return _T("FileBackedVirtual");
+		case BusTypeSpaces:				return _T("Storage Spaces");
+		case BusTypeNvme:				return _T("NVme");
+		case BusTypeScm:				return _T("Storage Class Memory");
+		default:
+			return _T("Other/Unknown");
+	}
+}
+
+/**
+ * Trims unnecessary trailing characters from the given string, including
+ * whitespace and control characters.
+ */
+void TrimTrailingSpaces(TCHAR* str)
+{
+	TCHAR c;
+	size_t len = 0;
+	size_t i = 0;
+
+	if (str == NULL || *str == _T('\0')) return;
+
+	len = _tcslen(str);
+	i = len;
+	
+	// Remove trailing spaces, tabs, and carriage returns from str.
+	while(i > 0)
+	{
+		c = str[i - 1];
+
+		// Only trims spaces, tabs, line breaks, or other invisible control characters (<32).
+		if (c == _T(' ') || c == _T('\t') || c == _T('\r') || c == _T('\n') || (unsigned int)c < 32)
+		{
+			str[i - 1] = _T('\0');
+			i--;
+		}
+		else
+		{
+			break;
+		}
+	}
+}
+
+/**
+ * Dynamically generates a diskpart script file with a modern GPT partition
+ * structure and formatting instructions tailored to the selected disk index.
+ * 
+ * @diskIndex: Index of the disk to be cleaned, partitioned, and formatted.
+ * @return: TRUE if the script file was successfully created, FALSE otherwise.
+ */
+BOOL CreateDiskpartFile(int diskIndex)
+{
+    // Define the script path based on the build configuration
+#ifdef _DEBUG
+    // Local test path for development in Visual Studio.
+    TCHAR scriptPath[] = _T("c:\\temp\\diskpart.txt");
+#else
+    // Production path inside the WinPE RAM disk environment.
+    TCHAR scriptPath[] = _T("x:\\diskpart.txt");
+#endif
+		
+    FILE* fp = NULL;
+
+    // Try to open the file securely in write mode
+    if (_tfopen_s(&fp, scriptPath, _T("w")) == 0)
+    {
+        // Select the disk specified by the user
+        _ftprintf(fp, _T("select disk %d\n"), diskIndex);
+        
+        // Wipe all existing partition structures and data.
+        _fputts(_T("clean\n"), fp);
+        
+        // Convert the partition style from MBR to the modern GPT schema.
+        _fputts(_T("convert gpt\n"), fp);
+        
+        // Create the main operating system partition (no 'active' flag required for GPT).
+        _fputts(_T("create partition primary\n"), fp);
+        
+        // Format command with the disk label marker "cleaned".
+        _fputts(_T("format quick fs=ntfs label=\"cleaned\"\n"), fp);
+        
+        // Assign a drive letter so Windows can register the volume label.
+        _fputts(_T("assign\n"), fp);
+
+        // Exit the diskpart utility
+        _fputts(_T("exit\n"), fp);
+        
+        // Safely close the file handle and flush changes to disk.
+        fclose(fp);
+        return TRUE;
+    }
+    
+    // Return FALSE if the file could not be created (e.g., directory missing or write protection)
+    return FALSE;
 }
