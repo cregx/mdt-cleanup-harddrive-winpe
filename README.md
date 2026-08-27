@@ -164,14 +164,7 @@ You need to undo the following adjustments:
 
 ## Stargazers, Forkers & other users
 
-Thanks to all for using Cleanup.
-
-### Stargazers
-
-[⭐ GitHub Stars](https://github.com/cregx/mdt-cleanup-harddrive-winpe/stargazers)
-
-### Forks
-[⭐ GitHub Forks](https://github.com/cregx/mdt-cleanup-harddrive-winpe/network/members)
+### Thanks to all for using Cleanup.
 
 ## Code of Conduct
 
