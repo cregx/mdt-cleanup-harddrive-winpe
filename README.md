@@ -168,10 +168,10 @@ Thanks to all for using Cleanup.
 
 ### Stargazers
 
-[![GitHub Stars](https://shields.io)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/stargazers)
+[⭐ GitHub Stars](https://github.com/cregx/mdt-cleanup-harddrive-winpe/stargazers)
 
 ### Forks
-[![GitHub Forks](https://shields.io)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/network/members)
+[⭐ GitHub Forks](https://github.com/cregx/mdt-cleanup-harddrive-winpe/network/members)
 
 ## Code of Conduct
 
