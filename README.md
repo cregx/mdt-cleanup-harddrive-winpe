@@ -27,6 +27,7 @@ I was able to trace this back to a hard disk that had not been cleaned (I also f
 
 The solution to the problem was also relatively simple: I had to do nothing other than run the Diskpart tool in a CMD shell before starting the actual  installation:
 
+**For Windows 10 (implemented in legacy versions up to v.1.2.9):**
 ```
 C:\>diskpart.exe
 sel dis 0
@@ -37,7 +38,17 @@ format fs=ntfs label="cleaned" quick
 assign
 exit
 ```
-
+**For Windows 11 (implemented as dynamic script generation since v.1.4.1):**
+```
+C:\>diskpart.exe
+select disk [disk_index]
+clean
+convert gpt
+create partition primary
+format quick fs=ntfs label="cleaned"
+assign
+exit
+```
 (The ```label="cleaned"``` parameter is of course not needed for manual cleaning. The above example corresponds to the solution used by Cleanup.)
 
 ### An alternative to a pure script-based solution
@@ -48,15 +59,15 @@ I found out that you can run a simple Visual Basic script with this task before 
 
 However, since I wanted to make the script a little more pleasant (nicer :blush:), I had to come up with a GUI-based solution: **Cleanup**.
 <p align="center" width="100%">
-    <img alt="UI-Cleanup-v.1.2.9-non-pxe-c-normal-state" src="https://github.com/cregx/mdt-cleanup-harddrive-winpe/assets/14788832/5f66c16a-18de-44e5-b49f-c93b7f333175" width="50%" />
+    <img alt="UI-Cleanup-v.1.4.1" src="https://github.com/user-attachments/assets/8c5e6827-a8d3-4cdc-80f3-318b3193097e" width="50%" />
 </p>
 
 #### Components of the solution
 The solution consists of the following three components:
 
-- cleanup.exe: the GUI-based application
-- action.bat: batch script, which is responsible for running Diskpart
-- diskpart.txt: parameter file with instructions for Diskpart
+- **cleanup.exe**: the GUI-based application
+- **action.bat**: batch script, which is responsible for running Diskpart
+- **diskpart.txt** - Parameter file with instructions for Diskpart. *(Obsolete since v.1.4.1) Remaining in the repository only as a placeholder. While older versions required this file to function, the application now completely ignores it and instead generates a fresh script directly in the WinPE RAM disk at `X:\diskpart.txt` based on the user's selection.*
 
 #### Rough flowchart
 <p align="center" width="100%">
@@ -133,15 +144,15 @@ Just revise all the strings you want and then create a new build. Finally, you c
 If you are not able to create your own NLS version, please contact me and tell me your translations in the process. I will then create an appropriate version for you and make it available for download under Releases.
 
 ### :question: Can Cleanup determine if drive 0 is the expected target drive and not the USB drive that was booted from?
+#### Drive Detection and Safety Considerations
 
-No, at the moment (October 2022) that is not the case.
-However, tests with many installations on various fairly current hardware models (Fujitsu, Hewlett Packard and Dell) have so far shown that the respective and different UEFI BIOS always recognized the internally installed hard drive as disk 0.
+* **Legacy Behavior (up to v.1.2.9 / October 2022):** 
+  Older versions did not check this automatically. However, extensive testing across various modern hardware models (Fujitsu, Hewlett Packard, and Dell) showed that different UEFI BIOS versions consistently mapped the internally installed hard drive as `disk 0`. This held true even when using a high-speed boot flash drive (like a Corsair GTX 128 GB), which `wmic` identifies as an *external hard disk medium*, whereas a "classic" USB flash drive is recognized as *removable media*. The BIOS likely utilized both disk size and connection type (USB controller, etc.) to correctly prioritize `disk 0`.
 
-This was also the case when using a modern boot flash drive (Corsair GTX (128 GB)), which was recognized by the ```wmic``` as ```external hard disk medium```.
-It is quite relevant to mention at this point that a "classic" USB flash drive is recognized by the ```wmic``` as ```removable media```.
+* **New Solution (since v.1.4.1 / June 2026):** 
+  To eliminate any risk of accidental data loss, the hardcoded dependency on `disk 0` has been removed. Cleanup now features an interactive dropdown control allowing the administrator to manually verify and select the exact physical target drive based on its reported name and size.
 
-I currently assume that the BIOS uses both the size of the disk and its connection (USB controller, etc.) to (correctly) determine disk 0.
-
+⚠️ **Important Requirements:**
 However, it is also important to note that the SATA controller mode in the device BIOS must be set to ```AHCI```. When using RAID, problems are bound to occur and Cleanup **will not work**.
 
 ### :question: I have included Cleanup in my LTI solution, but I would like to remove it now. How can I do that?
@@ -158,10 +169,10 @@ Thanks to all for using Cleanup.
 
 ### Stargazers
 
-[![Stargazers repo roster for @cregx/mdt-cleanup-harddrive-winpe](http://reporoster.com/stars/cregx/mdt-cleanup-harddrive-winpe)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/stargazers)
+[![GitHub Stars](https://shields.io)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/stargazers)
 
-### Forkers
-[![Forkers repo roster for @cregx/mdt-cleanup-harddrive-winpe](http://reporoster.com/forks/cregx/mdt-cleanup-harddrive-winpe)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/network/members)
+### Forks
+[![GitHub Forks](https://shields.io)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/network/members)
 
 ## Code of Conduct
 
