@@ -6,7 +6,6 @@
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/cregx/mdt-cleanup-harddrive-winpe)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/releases)
 [![Commits since release](https://img.shields.io/github/commits-since/cregx/mdt-cleanup-harddrive-winpe/latest/main)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/commits/main)
 [![Github All Releases](https://img.shields.io/github/downloads/cregx/mdt-cleanup-harddrive-winpe/total.svg)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/releases)
-[![Code-Signed](https://img.shields.io/badge/code--signed%20exe-Yes-green)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/releases)
 [![GitHub stars](https://img.shields.io/github/stars/cregx/mdt-cleanup-harddrive-winpe)](https://github.com/cregx/mdt-cleanup-harddrive-winpe/stargazers)
 
 The WinPE UI application "Cleanup" provides the ability to easily wipe the primary hard disk before a Microsoft Deployment Toolkit (MDT) based Lite Touch installation begins, i.e. before the LTI Wizard starts.
